@@ -148,7 +148,7 @@
 
     // green inner disc — narrow + tall (big blue band), per the picture
     discRx: 157, discRy: 266,
-    bubbleR: 42,                           // bubble radius
+    bubbleR: 48,                           // bubble radius (+15%)
     bubbleCount: 9,
   };
 
@@ -162,15 +162,15 @@
   // the top. Hand-placed (not an even-angle ring) so they match your layout —
   // symmetric about the vertical axis, bottom pair spread wider to clear.
   const BUBBLE_POS = [
-    { x: 300, y: 185 },  // 0-19     (top)
-    { x: 390, y: 261 },  // 20-39    (upper-right)
-    { x: 414, y: 370 },  // 40-59    (mid-right)
-    { x: 397, y: 483 },  // 60-79    (lower-right)
-    { x: 346, y: 588 },  // 80-99    (bottom-right)
-    { x: 254, y: 588 },  // 100-119  (bottom-left)
-    { x: 203, y: 483 },  // 120-139  (lower-left)
-    { x: 186, y: 370 },  // 140-159  (mid-left)
-    { x: 210, y: 261 },  // 160-180  (upper-left)
+    { x: 300, y: 395 },  // 0-19     (centre)
+    { x: 300, y: 185 },  // 20-39    (top / N)
+    { x: 376, y: 246 },  // 40-59    (upper-right / NE)
+    { x: 407, y: 395 },  // 60-79    (right / E)
+    { x: 376, y: 544 },  // 80-99    (lower-right / SE)
+    { x: 300, y: 605 },  // 100-119  (bottom / S)
+    { x: 224, y: 544 },  // 120-139  (lower-left / SW)
+    { x: 193, y: 395 },  // 140-159  (left / W)
+    { x: 224, y: 246 },  // 160-180  (upper-left / NW)
   ];
 
   // How far out (normalized to the number ring = 1.0) the finger must be to
