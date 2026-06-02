@@ -148,7 +148,7 @@
 
     // green inner disc — narrow + tall (big blue band), per the picture
     discRx: 157, discRy: 266,
-    bubbleR: 48,                           // bubble radius (+15%)
+    bubbleR: 50,                           // bubble radius (+5%)
     bubbleCount: 9,
   };
 
@@ -163,14 +163,14 @@
   // symmetric about the vertical axis, bottom pair spread wider to clear.
   const BUBBLE_POS = [
     { x: 300, y: 395 },  // 0-19     (centre)
-    { x: 300, y: 185 },  // 20-39    (top / N)
-    { x: 376, y: 246 },  // 40-59    (upper-right / NE)
-    { x: 407, y: 395 },  // 60-79    (right / E)
-    { x: 376, y: 544 },  // 80-99    (lower-right / SE)
-    { x: 300, y: 605 },  // 100-119  (bottom / S)
-    { x: 224, y: 544 },  // 120-139  (lower-left / SW)
-    { x: 193, y: 395 },  // 140-159  (left / W)
-    { x: 224, y: 246 },  // 160-180  (upper-left / NW)
+    { x: 300, y: 179 },  // 20-39    (top / N)        — touches rim
+    { x: 391, y: 265 },  // 40-59    (upper-right / NE) — touches rim, equidistant
+    { x: 407, y: 395 },  // 60-79    (right / E)       — touches rim
+    { x: 391, y: 525 },  // 80-99    (lower-right / SE) — touches rim, equidistant
+    { x: 300, y: 611 },  // 100-119  (bottom / S)      — touches rim
+    { x: 209, y: 525 },  // 120-139  (lower-left / SW)  — touches rim, equidistant
+    { x: 193, y: 395 },  // 140-159  (left / W)        — touches rim
+    { x: 209, y: 265 },  // 160-180  (upper-left / NW)  — touches rim, equidistant
   ];
 
   // How far out (normalized to the number ring = 1.0) the finger must be to
@@ -206,6 +206,12 @@
     return { x: T.cx + rx * Math.cos(a), y: T.cy + ry * Math.sin(a) };
   }
   function bubbleCenter(i) { return BUBBLE_POS[i]; }
+  // intersection point of line (p1,p2) and line (p3,p4)
+  function lineIntersect(p1, p2, p3, p4) {
+    const d = (p2.x - p1.x) * (p4.y - p3.y) - (p2.y - p1.y) * (p4.x - p3.x);
+    const t = ((p3.x - p1.x) * (p4.y - p3.y) - (p3.y - p1.y) * (p4.x - p3.x)) / d;
+    return { x: p1.x + t * (p2.x - p1.x), y: p1.y + t * (p2.y - p1.y) };
+  }
 
   // exact values for the active range, e.g. 40..59
   function rangeValues(idx) {
@@ -266,14 +272,18 @@
       fill: "var(--green-disc)", stroke: "var(--blue-dark)", "stroke-width": 2
     }));
 
-    // 4) exact-value numbers for the active range (+ highlight under finger)
+    // 4) exact-value numbers — placed at each cell's centre (where the cell's
+    //    two diagonals cross): corners = inner/outer ellipse x segment edges.
     for (let i = 0; i < vals.length; i++) {
-      const a = T.startAngleDeg + i * step;
-      const p = ptOnEllipse(T.numRx, T.numRy, a);
+      const a  = T.startAngleDeg + i * step;
+      const a1 = a - step / 2, a2 = a + step / 2;
+      const iL = ptOnEllipse(T.ringInnerRx, T.ringInnerRy, a1);
+      const iR = ptOnEllipse(T.ringInnerRx, T.ringInnerRy, a2);
+      const oL = ptOnEllipse(T.ringOuterRx, T.ringOuterRy, a1);
+      const oR = ptOnEllipse(T.ringOuterRx, T.ringOuterRy, a2);
+      const p  = lineIntersect(iL, oR, iR, oL);
       const selected = STATE.dragging && STATE.previewIdx === i;
-      if (selected) {
-        svg.appendChild(el("circle", { cx: p.x, cy: p.y, r: 23, class: "seg-hit" }));
-      }
+      if (selected) svg.appendChild(el("circle", { cx: p.x, cy: p.y, r: 23, class: "seg-hit" }));
       svg.appendChild(el("text", {
         x: p.x, y: p.y, class: selected ? "seg-num seg-num-active" : "seg-num"
       }, vals[i]));
