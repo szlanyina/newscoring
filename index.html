@@ -16,7 +16,8 @@
       --frame:     #103a4a;
       --text:      #1a1a1a;
     }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent;
+        -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
     html, body {
       margin: 0; padding: 0; height: 100%;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -127,20 +128,20 @@
     cx: 250, cy: 320,          // dial center within the 500x640 viewBox
 
     // outer number ring (ellipse). rx<ry => the tall oval in your sketch.
-    ringOuterRx: 230, ringOuterRy: 300,   // outer edge of the blue band
-    ringInnerRx: 168, ringInnerRy: 222,   // inner edge of the blue band (= green disc edge)
-    numRx: 199, numRy: 261,               // where the 20 numbers sit (mid-band)
+    ringOuterRx: 246, ringOuterRy: 316,   // outer edge of the blue band (wider + longer)
+    ringInnerRx: 160, ringInnerRy: 218,   // inner edge of the blue band (= green disc edge)
+    numRx: 205, numRy: 268,               // where the 20 numbers sit (mid-band)
     segCount: 20,                          // exact values shown per range
     startAngleDeg: -90,                    // first segment at top, going clockwise
 
-    // green inner disc + range bubbles
-    discRx: 168, discRy: 222,
-    bubbleRx: 112, bubbleRy: 150,          // ellipse the 9 bubbles sit on
-    bubbleR: 36,                           // bubble radius
+    // green inner disc + range bubbles  (green band thinner -> wider blue ring)
+    discRx: 160, discRy: 218,
+    bubbleRx: 120, bubbleRy: 152,          // ellipse the 9 bubbles sit on
+    bubbleR: 40,                           // bubble radius (bigger)
     bubbleCount: 9,
 
     // center readout
-    centerR: 70,
+    centerR: 64,
   };
 
   // The 9 score ranges. 160-180 is intentionally the widest bucket.
@@ -316,6 +317,8 @@
   }
   svg.addEventListener("pointerup", endDrag);
   svg.addEventListener("pointercancel", endDrag);
+  // stop iOS long-press from popping a callout / cancelling the drag
+  svg.addEventListener("contextmenu", (e) => e.preventDefault());
 
   render();
   </script>
