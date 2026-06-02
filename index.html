@@ -148,29 +148,32 @@
 
     // green inner disc — narrow + tall (big blue band), per the picture
     discRx: 157, discRy: 266,
-    bubbleR: 50,                           // bubble radius (+5%)
-    bubbleCount: 9,
+    bubbleR: 48,                           // bubble radius
+    bubbleCount: 10,
   };
 
-  // The 9 score ranges. 160-180 is intentionally the widest bucket.
+  // The 10 score ranges. 0-9 is the rarely-used centre bubble (labeled "0").
+  // All other buckets are 20 values wide: lower half on the left ring arc,
+  // upper half on the right arc, both reading bottom-to-top.
   const RANGES = [
-    "0-19","20-39","40-59","60-79","80-99",
-    "100-119","120-139","140-159","160-180"
+    "0-9",
+    "10-29","30-49","50-69","70-89",
+    "90-109","110-129","130-149","150-169","170-180"
   ];
 
-  // Bubble centres MEASURED from the picture (viewBox coords), clockwise from
-  // the top. Hand-placed (not an even-angle ring) so they match your layout —
-  // symmetric about the vertical axis, bottom pair spread wider to clear.
+  // Bubble centres (viewBox coords). Centre bubble + 9 outer at ~40° intervals.
+  // Bottom pair spread wider so adjacent bubbles don't overlap (r=44).
   const BUBBLE_POS = [
-    { x: 300, y: 395 },  // 0-19     (centre)
-    { x: 300, y: 179 },  // 20-39    (top / N)        — touches rim
-    { x: 391, y: 265 },  // 40-59    (upper-right / NE) — touches rim, equidistant
-    { x: 407, y: 395 },  // 60-79    (right / E)       — touches rim
-    { x: 391, y: 525 },  // 80-99    (lower-right / SE) — touches rim, equidistant
-    { x: 300, y: 611 },  // 100-119  (bottom / S)      — touches rim
-    { x: 209, y: 525 },  // 120-139  (lower-left / SW)  — touches rim, equidistant
-    { x: 193, y: 395 },  // 140-159  (left / W)        — touches rim
-    { x: 209, y: 265 },  // 160-180  (upper-left / NW)  — touches rim, equidistant
+    { x: 300, y: 450 },  // 0-9     (centre)
+    { x: 300, y: 332 },  // 10-29
+    { x: 384, y: 261 },  // 30-49
+    { x: 409, y: 395 },  // 50-69
+    { x: 386, y: 527 },  // 70-89
+    { x: 300, y: 613 },  // 90-109  (bottom of disc, centre)
+    { x: 300, y: 177 },  // 110-129 (top of disc, centre)
+    { x: 214, y: 527 },  // 130-149
+    { x: 191, y: 395 },  // 150-169
+    { x: 216, y: 261 },  // 170-180
   ];
 
   // How far out (normalized to the number ring = 1.0) the finger must be to
@@ -220,6 +223,23 @@
     const vals = [];
     for (let v = lo; v <= hi; v++) vals.push(v);
     return vals;
+  }
+
+  // Map a flat sorted vals array onto the 20 ring segments so that:
+  //   left arc  (i=10..19, bottom→top) carries the lower half of vals
+  //   right arc (i=9..0,   bottom→top) carries the upper half of vals
+  // Returns a 20-element array; slots with no value stay null.
+  function buildSegmentValues(vals) {
+    const result = new Array(T.segCount).fill(null);
+    const half = Math.floor(vals.length / 2);
+    for (let j = 0; j < Math.min(half, 10); j++) {
+      result[10 + j] = vals[j];        // left: i=10=bottom … i=19=upper-left
+    }
+    const rightLen = vals.length - half;
+    for (let j = 0; j < Math.min(rightLen, 10); j++) {
+      result[9 - j] = vals[half + j];  // right: i=9=near-bottom … i=0=top
+    }
+    return result;
   }
 
   // ----- pointer → SVG viewBox coordinates -----
@@ -272,21 +292,28 @@
       fill: "var(--green-disc)", stroke: "var(--blue-dark)", "stroke-width": 2
     }));
 
-    // 4) exact-value numbers — placed at each cell's centre (where the cell's
-    //    two diagonals cross): corners = inner/outer ellipse x segment edges.
-    for (let i = 0; i < vals.length; i++) {
+    // 4) exact-value numbers — bottom-to-top on each arc half.
+    //    Left arc (i=10..19) carries the lower half of vals; right arc (i=9..0)
+    //    carries the upper half. Segments with no value are skipped.
+    const segVals = buildSegmentValues(vals);
+    for (let i = 0; i < T.segCount; i++) {
+      if (segVals[i] == null) continue;
       const a  = T.startAngleDeg + i * step;
       const a1 = a - step / 2, a2 = a + step / 2;
       const iL = ptOnEllipse(T.ringInnerRx, T.ringInnerRy, a1);
       const iR = ptOnEllipse(T.ringInnerRx, T.ringInnerRy, a2);
       const oL = ptOnEllipse(T.ringOuterRx, T.ringOuterRy, a1);
       const oR = ptOnEllipse(T.ringOuterRx, T.ringOuterRy, a2);
-      const p  = lineIntersect(iL, oR, iR, oL);
+      const midL = { x: (iL.x + oL.x) / 2, y: (iL.y + oL.y) / 2 };
+      const midR = { x: (iR.x + oR.x) / 2, y: (iR.y + oR.y) / 2 };
+      const midI = { x: (iL.x + iR.x) / 2, y: (iL.y + iR.y) / 2 };
+      const midO = { x: (oL.x + oR.x) / 2, y: (oL.y + oR.y) / 2 };
+      const p    = lineIntersect(midL, midR, midI, midO);
       const selected = STATE.dragging && STATE.previewIdx === i;
       if (selected) svg.appendChild(el("circle", { cx: p.x, cy: p.y, r: 23, class: "seg-hit" }));
       svg.appendChild(el("text", {
         x: p.x, y: p.y, class: selected ? "seg-num seg-num-active" : "seg-num"
-      }, vals[i]));
+      }, segVals[i]));
     }
 
     // 5) range bubbles
@@ -296,17 +323,24 @@
         cx: p.x, cy: p.y, r: T.bubbleR,
         class: i === STATE.activeRange ? "bubble bubble-active" : "bubble"
       }));
-      const [lo, hi] = RANGES[i].split("-");
+      const parts = RANGES[i].split("-");
       const t = el("text", { x: p.x, y: p.y, class: "bubble-text" });
-      t.appendChild(el("tspan", { x: p.x, dy: "-0.35em" }, lo + "-"));
-      t.appendChild(el("tspan", { x: p.x, dy: "1.1em" }, hi));
+      if (parts.length === 1 || (parts[0] === "0" && parts[1] === "9")) {
+        // 0-9 bucket: show just "0"
+        t.appendChild(el("tspan", { x: p.x, dy: "0" }, "0"));
+      } else {
+        t.appendChild(el("tspan", { x: p.x, dy: "-0.35em" }, parts[0] + "-"));
+        t.appendChild(el("tspan", { x: p.x, dy: "1.1em" }, parts[1]));
+      }
       svg.appendChild(t);
     }
 
     // 6) score readout now lives in the box ABOVE the dial (centre stays empty)
     let scoreTxt = "–";
-    if (STATE.dragging) scoreTxt = (STATE.previewIdx != null) ? String(vals[STATE.previewIdx]) : "–";
-    else if (STATE.lastScore != null) scoreTxt = String(STATE.lastScore);
+    if (STATE.dragging) {
+      const v = (STATE.previewIdx != null) ? segVals[STATE.previewIdx] : null;
+      scoreTxt = (v != null) ? String(v) : "–";
+    } else if (STATE.lastScore != null) scoreTxt = String(STATE.lastScore);
     scoreEl.textContent = scoreTxt;
   }
 
@@ -332,13 +366,14 @@
 
   function endDrag(e) {
     if (!STATE.dragging) return;
-    const vals = rangeValues(STATE.activeRange);
-    if (STATE.previewIdx != null) {
-      STATE.lastScore = vals[STATE.previewIdx];
+    const segVals = buildSegmentValues(rangeValues(STATE.activeRange));
+    const committed = (STATE.previewIdx != null) ? segVals[STATE.previewIdx] : null;
+    if (committed != null) {
+      STATE.lastScore = committed;
       console.log("COMMIT score:", STATE.lastScore);
       if (navigator.vibrate) navigator.vibrate(15);   // haptic on commit (Android; iOS ignores)
     } else {
-      console.log("CANCEL (released in dead zone)");
+      console.log("CANCEL (released in dead zone or empty segment)");
     }
     STATE.dragging = false;
     STATE.previewIdx = null;
