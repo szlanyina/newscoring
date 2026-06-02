@@ -25,22 +25,22 @@
     }
     /* phone-ish frame, but fills the screen on an actual phone */
     .frame {
-      max-width: 480px; margin: 0 auto; min-height: 100%;
+      max-width: 480px; margin: 0 auto; height: 100dvh; overflow: hidden;
       background: #fff; border: 6px solid var(--frame); border-radius: 36px;
-      padding: 14px 12px 18px; display: flex; flex-direction: column; gap: 10px;
+      padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px;
     }
 
     /* ---------- header scoreboard ---------- */
     .scoreboard {
-      border: 3px solid var(--frame); border-radius: 16px;
-      padding: 10px 12px; display: grid;
-      grid-template-columns: 1fr auto 1fr; align-items: start; gap: 8px;
+      border: 3px solid var(--frame); border-radius: 14px;
+      padding: 5px 12px 7px; display: grid;
+      grid-template-columns: 1fr auto 1fr; align-items: start; gap: 6px;
     }
     .sb-title { grid-column: 1 / -1; text-align: center; font-weight: 700;
-      text-decoration: underline; font-size: 18px; margin-bottom: 2px; }
-    .opp-name { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
-    .player-name { font-size: 44px; font-weight: 800; color: var(--pink); line-height: 1; }
-    .sub { font-size: 13px; color: #333; }
+      text-decoration: underline; font-size: 15px; margin-bottom: 0; }
+    .opp-name { font-size: 20px; font-weight: 700; letter-spacing: 1px; line-height: 1.05; }
+    .player-name { font-size: 30px; font-weight: 800; color: var(--pink); line-height: 1; }
+    .sub { font-size: 11px; line-height: 1.25; color: #333; }
     .side-left { text-align: left; }
     .side-right { text-align: right; }
     .legbox {
@@ -52,13 +52,13 @@
     .legbox .l { background: #eef6fb; color: var(--text); }
     .legbox .r { background: #eef6fb; color: var(--pink); }
     .esc {
-      background: var(--blue-dark); color: #fff; border: none; border-radius: 12px;
-      padding: 8px 14px; font-size: 16px; font-weight: 700;
+      background: var(--blue-dark); color: #fff; border: none; border-radius: 10px;
+      padding: 5px 12px; font-size: 14px; font-weight: 700;
     }
 
     /* ---------- radial area ---------- */
-    .radial-wrap { flex: 1; display: flex; align-items: center; justify-content: center; }
-    svg { width: 100%; height: auto; display: block; touch-action: none; }
+    .radial-wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+    svg { width: 100%; height: 100%; display: block; touch-action: none; }
 
     .seg-line { stroke: var(--blue-dark); stroke-width: 1.4; }
     .seg-num  { font-size: 19px; font-weight: 600; fill: var(--text);
@@ -73,7 +73,7 @@
     /* ---------- footer ---------- */
     .back {
       align-self: center; background: var(--blue-dark); color: #fff; border: none;
-      border-radius: 14px; padding: 12px 34px; font-size: 18px; font-weight: 700;
+      border-radius: 14px; padding: 9px 34px; font-size: 17px; font-weight: 700;
       letter-spacing: 1px;
     }
   </style>
