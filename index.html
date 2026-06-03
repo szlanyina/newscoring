@@ -155,10 +155,18 @@
   // The 10 score ranges. 0-9 is the rarely-used centre bubble (labeled "0").
   // All other buckets are 20 values wide: lower half on the left ring arc,
   // upper half on the right arc, both reading bottom-to-top.
+  // RANGES[i] maps 1-to-1 to BUBBLE_POS[i].
   const RANGES = [
-    "0-9",
-    "10-29","30-49","50-69","70-89",
-    "90-109","110-129","130-149","150-169","170-180"
+    "150-169",  // 0  (300,450) centre
+    "170-180",  // 1  (300,332) upper-centre
+    "110-129",  // 2  (384,261) upper-right
+    "70-89",    // 3  (409,395) right
+    "30-49",    // 4  (386,527) lower-right
+    "0-9",      // 5  (300,613) bottom
+    "130-149",  // 6  (300,177) top
+    "10-29",    // 7  (214,527) lower-left
+    "50-69",    // 8  (191,395) left
+    "90-109",   // 9  (216,261) upper-left
   ];
 
   // Bubble centres (viewBox coords). Centre bubble + 9 outer at ~40° intervals.
@@ -225,20 +233,34 @@
     return vals;
   }
 
-  // Map a flat sorted vals array onto the 20 ring segments so that:
-  //   left arc  (i=10..19, bottom→top) carries the lower half of vals
-  //   right arc (i=9..0,   bottom→top) carries the upper half of vals
-  // Returns a 20-element array; slots with no value stay null.
-  function buildSegmentValues(vals) {
+  // Map a flat sorted vals array onto the 20 ring segments.
+  // Default: lower half → left arc (i=10..19, bottom→top),
+  //          upper half → right arc (i=9..0,   bottom→top).
+  // Special cases driven by rangeStr override the split.
+  function buildSegmentValues(vals, rangeStr) {
     const result = new Array(T.segCount).fill(null);
+
+    if (rangeStr === "0-9") {
+      // All 10 values on the left arc only
+      for (let j = 0; j < Math.min(vals.length, 10); j++)
+        result[10 + j] = vals[j];
+      return result;
+    }
+
+    if (rangeStr === "170-180") {
+      // 170-179 on the left arc, 180 alone on the right at i=9 (near bottom-right)
+      for (let j = 0; j < 10; j++) result[10 + j] = vals[j];
+      result[9] = vals[10];
+      return result;
+    }
+
+    // Default even split
     const half = Math.floor(vals.length / 2);
-    for (let j = 0; j < Math.min(half, 10); j++) {
-      result[10 + j] = vals[j];        // left: i=10=bottom … i=19=upper-left
-    }
+    for (let j = 0; j < Math.min(half, 10); j++)
+      result[10 + j] = vals[j];
     const rightLen = vals.length - half;
-    for (let j = 0; j < Math.min(rightLen, 10); j++) {
-      result[9 - j] = vals[half + j];  // right: i=9=near-bottom … i=0=top
-    }
+    for (let j = 0; j < Math.min(rightLen, 10); j++)
+      result[9 - j] = vals[half + j];
     return result;
   }
 
@@ -295,7 +317,7 @@
     // 4) exact-value numbers — bottom-to-top on each arc half.
     //    Left arc (i=10..19) carries the lower half of vals; right arc (i=9..0)
     //    carries the upper half. Segments with no value are skipped.
-    const segVals = buildSegmentValues(vals);
+    const segVals = buildSegmentValues(vals, RANGES[STATE.activeRange]);
     for (let i = 0; i < T.segCount; i++) {
       if (segVals[i] == null) continue;
       // True visual centre: bisect the two bounding divider lines in Euclidean
@@ -330,14 +352,15 @@
         cx: p.x, cy: p.y, r: T.bubbleR,
         class: i === STATE.activeRange ? "bubble bubble-active" : "bubble"
       }));
-      const parts = RANGES[i].split("-");
-      const t = el("text", { x: p.x, y: p.y, class: "bubble-text" });
-      if (parts.length === 1 || (parts[0] === "0" && parts[1] === "9")) {
-        // 0-9 bucket: show just "0"
+      const lo = Number(RANGES[i].split("-")[0]);
+      const t  = el("text", { x: p.x, y: p.y, class: "bubble-text" });
+      if (RANGES[i] === "0-9") {
+        // Rarely-used bucket — single "0" label
         t.appendChild(el("tspan", { x: p.x, dy: "0" }, "0"));
       } else {
-        t.appendChild(el("tspan", { x: p.x, dy: "-0.35em" }, parts[0] + "-"));
-        t.appendChild(el("tspan", { x: p.x, dy: "1.1em" }, parts[1]));
+        // Show the two decades covered by this bucket, e.g. "130" / "140"
+        t.appendChild(el("tspan", { x: p.x, dy: "-0.35em" }, String(lo)));
+        t.appendChild(el("tspan", { x: p.x, dy: "1.1em" },  String(lo + 10)));
       }
       svg.appendChild(t);
     }
@@ -373,7 +396,7 @@
 
   function endDrag(e) {
     if (!STATE.dragging) return;
-    const segVals = buildSegmentValues(rangeValues(STATE.activeRange));
+    const segVals = buildSegmentValues(rangeValues(STATE.activeRange), RANGES[STATE.activeRange]);
     const committed = (STATE.previewIdx != null) ? segVals[STATE.previewIdx] : null;
     if (committed != null) {
       STATE.lastScore = committed;
