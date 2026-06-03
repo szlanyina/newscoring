@@ -95,7 +95,7 @@
     .seg-num-active { font-size: 27px; font-weight: 800; fill: #1a1a1a; }
     .bubble   { fill: var(--green-bub); stroke: #1d5a20; stroke-width: 2; }
     .bubble-active { fill: #3aa33f; stroke: #0f3d12; stroke-width: 3; }
-    .bubble-text { fill: #fff; font-size: 14px; font-weight: 700;
+    .bubble-text { fill: #fff; font-size: 20px; font-weight: 700;
       text-anchor: middle; dominant-baseline: central; }
     .center-num { fill: var(--text); font-size: 60px; font-weight: 700;
       text-anchor: middle; dominant-baseline: central; }
@@ -257,10 +257,17 @@
     if (text != null) n.textContent = text;
     return n;
   }
-  // point on an ellipse at angle a (deg), measured clockwise from top
+  // point on an ellipse at parametric angle a (deg)
   function ptOnEllipse(rx, ry, aDeg) {
     const a = deg(aDeg);
     return { x: T.cx + rx * Math.cos(a), y: T.cy + ry * Math.sin(a) };
+  }
+  // point where the ray at TRUE angle θ (deg, from centre) meets the ellipse.
+  // Dividing by equal true angle gives visually equal pie-slice cells.
+  function ptOnEllipseTrue(rx, ry, thetaDeg) {
+    const a = deg(thetaDeg), c = Math.cos(a), s = Math.sin(a);
+    const k = 1 / Math.sqrt((c * c) / (rx * rx) + (s * s) / (ry * ry));
+    return { x: T.cx + k * c, y: T.cy + k * s };
   }
   function bubbleCenter(i) { return BUBBLE_POS[i]; }
   // intersection point of line (p1,p2) and line (p3,p4)
@@ -268,6 +275,55 @@
     const d = (p2.x - p1.x) * (p4.y - p3.y) - (p2.y - p1.y) * (p4.x - p3.x);
     const t = ((p3.x - p1.x) * (p4.y - p3.y) - (p3.y - p1.y) * (p4.x - p3.x)) / d;
     return { x: p1.x + t * (p2.x - p1.x), y: p1.y + t * (p2.y - p1.y) };
+  }
+
+  // n points equally spaced by ARC LENGTH around an ellipse, starting at startDeg.
+  function equalArcPoints(rx, ry, n, startDeg) {
+    const SAMPLES = 4000;
+    const pt = (aDeg) => { const a = deg(aDeg); return { x: T.cx + rx*Math.cos(a), y: T.cy + ry*Math.sin(a) }; };
+    const cum = [{ s: 0, p: pt(startDeg) }];
+    let prev = cum[0].p, total = 0;
+    for (let i = 1; i <= SAMPLES; i++) {
+      const p = pt(startDeg + 360 * i / SAMPLES);
+      total += Math.hypot(p.x - prev.x, p.y - prev.y);
+      cum.push({ s: total, p }); prev = p;
+    }
+    const out = [];
+    let j = 0;
+    for (let k = 0; k < n; k++) {
+      const target = k * total / n;
+      while (j < cum.length - 1 && cum[j + 1].s < target) j++;
+      const a = cum[j], b = cum[j + 1] || cum[j];
+      const f = b.s > a.s ? (target - a.s) / (b.s - a.s) : 0;
+      out.push({ x: a.p.x + f * (b.p.x - a.p.x), y: a.p.y + f * (b.p.y - a.p.y) });
+    }
+    return out;
+  }
+
+  // Ring boundary points: inner + outer ellipses each split into 20 equal
+  // arc-length pieces, starting at the top (so a boundary sits on the vertical).
+  function computeRing() {
+    const startB = T.startAngleDeg - (360 / T.segCount) / 2;   // first boundary at top
+    return {
+      inner: equalArcPoints(T.ringInnerRx, T.ringInnerRy, T.segCount, startB),
+      outer: equalArcPoints(T.ringOuterRx, T.ringOuterRy, T.segCount, startB),
+    };
+  }
+  const RING = computeRing();
+
+  // standard ray-cast point-in-polygon
+  function pointInPoly(p, poly) {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const xi = poly[i].x, yi = poly[i].y, xj = poly[j].x, yj = poly[j].y;
+      if (((yi > p.y) !== (yj > p.y)) && (p.x < (xj - xi) * (p.y - yi) / (yj - yi) + xi)) inside = !inside;
+    }
+    return inside;
+  }
+  // corners of cell i (inner→inner→outer→outer)
+  function cellCorners(i) {
+    const n = (i + 1) % T.segCount;
+    return [RING.inner[i], RING.inner[n], RING.outer[n], RING.outer[i]];
   }
 
   // exact values for the active range, e.g. 40..59
@@ -320,16 +376,12 @@
     }
     return null;
   }
-  // which ring segment (if any) a point maps to — normalized so the ellipse
-  // is treated as a circle, giving correct angular sectors.
+  // which ring segment (if any) a point maps to — test against each cell quad.
   function segmentAt(p) {
-    const nx = (p.x - T.cx) / T.numRx;
-    const ny = (p.y - T.cy) / T.numRy;
-    const r  = Math.hypot(nx, ny);
-    if (r < SELECT_THRESHOLD) return null;          // inner / dead zone
-    let aDeg = Math.atan2(ny, nx) * 180 / Math.PI;  // clockwise-from-top frame
-    let idx  = Math.round((aDeg - T.startAngleDeg) / step);
-    return ((idx % T.segCount) + T.segCount) % T.segCount;
+    for (let i = 0; i < T.segCount; i++) {
+      if (pointInPoly(p, cellCorners(i))) return i;
+    }
+    return null;                                    // inner disc / outside = no value
   }
 
   // =========================== RENDER =====================================
@@ -337,33 +389,29 @@
     svg.innerHTML = "";
     const vals = rangeValues(STATE.activeRange);
 
-    // 1) blue outer band
-    svg.appendChild(el("ellipse", {
-      cx: T.cx, cy: T.cy, rx: T.ringOuterRx, ry: T.ringOuterRy,
-      fill: "var(--blue-ring)", stroke: "var(--blue-dark)", "stroke-width": 2
-    }));
-
-    // 1b) darker upper-arc cells (i=0..4 upper-right, i=15..19 upper-left)
-    for (const i of [15,16,17,18,19,0,1,2,3,4]) {
-      const a1 = deg(T.startAngleDeg + i * step - step / 2);
-      const a2 = deg(T.startAngleDeg + i * step + step / 2);
-      const p1x = T.cx + T.ringOuterRx * Math.cos(a1), p1y = T.cy + T.ringOuterRy * Math.sin(a1);
-      const p2x = T.cx + T.ringOuterRx * Math.cos(a2), p2y = T.cy + T.ringOuterRy * Math.sin(a2);
-      const d = `M ${T.cx} ${T.cy} L ${p1x} ${p1y} A ${T.ringOuterRx} ${T.ringOuterRy} 0 0 1 ${p2x} ${p2y} Z`;
-      svg.appendChild(el("path", { d, fill: "#9ac8e8", stroke: "none" }));
-    }
-
-    // 2) segment divider lines (masked by the green disc next)
+    // 1) ring cells — each drawn as its own trapezoid (inner arc → outer arc).
+    //    A white stroke-width:3 on each cell yields a uniform 3-unit gap between
+    //    neighbours; the upper arc (i=0..4, 15..19) is a darker blue.
+    const upperSet = new Set([15,16,17,18,19,0,1,2,3,4]);
     for (let i = 0; i < T.segCount; i++) {
-      const a = T.startAngleDeg + i * step - step / 2;
-      const p = ptOnEllipse(T.ringOuterRx, T.ringOuterRy, a);
-      svg.appendChild(el("line", { x1: T.cx, y1: T.cy, x2: p.x, y2: p.y, class: "seg-line" }));
+      const n = (i + 1) % T.segCount;
+      const iL = RING.inner[i], iR = RING.inner[n];
+      const oL = RING.outer[i], oR = RING.outer[n];
+      const d = `M ${iL.x} ${iL.y}`
+              + ` A ${T.ringInnerRx} ${T.ringInnerRy} 0 0 1 ${iR.x} ${iR.y}`
+              + ` L ${oR.x} ${oR.y}`
+              + ` A ${T.ringOuterRx} ${T.ringOuterRy} 0 0 0 ${oL.x} ${oL.y}`
+              + ` Z`;
+      svg.appendChild(el("path", {
+        d, fill: upperSet.has(i) ? "#9ac8e8" : "var(--blue-ring)",
+        stroke: "#fff", "stroke-width": 3, "stroke-linejoin": "round"
+      }));
     }
 
-    // 3) green inner disc
+    // 3) white inner disc
     svg.appendChild(el("ellipse", {
       cx: T.cx, cy: T.cy, rx: T.discRx, ry: T.discRy,
-      fill: "var(--green-disc)", stroke: "var(--blue-dark)", "stroke-width": 2
+      fill: "#fff", stroke: "var(--blue-dark)", "stroke-width": 2
     }));
 
     // 4) exact-value numbers — bottom-to-top on each arc half.
@@ -372,22 +420,12 @@
     const segVals = buildSegmentValues(vals, RANGES[STATE.activeRange]);
     for (let i = 0; i < T.segCount; i++) {
       if (segVals[i] == null) continue;
-      // True visual centre: bisect the two bounding divider lines in Euclidean
-      // space (not parametric angle space — on an ellipse those differ).
-      const a  = T.startAngleDeg + i * step;
-      const a1 = deg(a - step / 2), a2 = deg(a + step / 2);
-      // Direction vectors from centre to each divider endpoint on the outer ellipse
-      const d1x = T.ringOuterRx * Math.cos(a1), d1y = T.ringOuterRy * Math.sin(a1);
-      const d2x = T.ringOuterRx * Math.cos(a2), d2y = T.ringOuterRy * Math.sin(a2);
-      // Normalise to unit vectors, then average → bisector direction
-      const m1 = Math.hypot(d1x, d1y), m2 = Math.hypot(d2x, d2y);
-      const bx = d1x/m1 + d2x/m2,    by = d1y/m1 + d2y/m2;
-      const bm = Math.hypot(bx, by);
-      const ux = bx/bm, uy = by/bm;
-      // Intersect bisector ray with inner and outer ellipses
-      const tOut = 1 / Math.sqrt(ux*ux/(T.ringOuterRx*T.ringOuterRx) + uy*uy/(T.ringOuterRy*T.ringOuterRy));
-      const tIn  = 1 / Math.sqrt(ux*ux/(T.ringInnerRx*T.ringInnerRx) + uy*uy/(T.ringInnerRy*T.ringInnerRy));
-      const p = { x: T.cx + (tOut+tIn)/2*ux, y: T.cy + (tOut+tIn)/2*uy };
+      // Cell centre = average of its four boundary corners.
+      const c = cellCorners(i);
+      const p = {
+        x: (c[0].x + c[1].x + c[2].x + c[3].x) / 4,
+        y: (c[0].y + c[1].y + c[2].y + c[3].y) / 4,
+      };
       const selected = STATE.dragging && STATE.previewIdx === i;
       if (selected) svg.appendChild(el("circle", { cx: p.x, cy: p.y, r: 23, class: "seg-hit" }));
       svg.appendChild(el("text", {
