@@ -397,13 +397,13 @@
     if (labelOverride == null && (STATE.dragging || STATE.settleScore != null)) return;
     const t = el("text", { x: p.x, y: p.y, class: "bubble-text" });
     if (labelOverride != null) {
-      t.appendChild(el("tspan", { x: p.x, dy: "0.35em" }, String(labelOverride)));
+      t.appendChild(el("tspan", { x: p.x, dy: "0.32em" }, String(labelOverride)));
     } else if (RANGES[i] === "0-9") {
-      t.appendChild(el("tspan", { x: p.x, dy: "0.35em" }, "0"));
+      t.appendChild(el("tspan", { x: p.x, dy: "0.32em" }, "0"));
     } else {
       const lo = Number(RANGES[i].split("-")[0]);
-      t.appendChild(el("tspan", { x: p.x, dy: "-0.2em" }, String(lo)));
-      t.appendChild(el("tspan", { x: p.x, dy: "1.1em" },  String(lo + 10)));
+      t.appendChild(el("tspan", { x: p.x, dy: "-0.45em" }, String(lo)));
+      t.appendChild(el("tspan", { x: p.x, dy: "1.0em" },  String(lo + 10)));
     }
     svg.appendChild(t);
   }
