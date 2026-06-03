@@ -35,7 +35,7 @@
     .scoreboard {
       border: 3px solid var(--frame); border-radius: 14px;
       padding: 5px 5px; display: grid;
-      grid-template-columns: 1fr auto 1fr; gap: 4px; align-items: stretch;
+      grid-template-columns: auto 1fr auto; gap: 4px; align-items: stretch;
     }
 
     /* a player panel: history column + main (remaining + actual throw) */
@@ -45,7 +45,7 @@
 
     .hist-col {
       display: flex; flex-direction: column; gap: 3px; align-self: flex-start;
-      height: 131px; box-sizing: border-box; padding: 8px 7px 2px 0;
+      width: 61px; height: 131px; box-sizing: border-box; padding: 8px 7px 2px 0;
       overflow-y: auto; overflow-x: hidden;
       touch-action: pan-y; -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
