@@ -46,15 +46,22 @@
     .hist-col { display: flex; flex-direction: column; gap: 3px; }
     .hist-box {
       position: relative; border: 2px solid var(--c); border-radius: 7px;
-      min-width: 40px; height: 28px; display: flex; align-items: center; justify-content: center;
+      min-width: 52px; height: 28px; display: flex; align-items: center; justify-content: center;
       font-size: 16px; font-weight: 700; color: var(--c);
     }
-    .hist-box .darts { position: absolute; top: -4px; right: 2px; font-size: 10px; font-weight: 600; }
     .hist-box.empty { border-color: #ccc; }
+    /* dart-count badge — small circle at the top-right corner */
+    .darts {
+      position: absolute; top: -7px; right: -5px;
+      min-width: 16px; height: 16px; padding: 0 2px; border-radius: 50%;
+      background: #fff; border: 1.5px solid var(--c); color: var(--c);
+      font-size: 9px; font-weight: 700; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
     .hist-box[data-vi], .actual-box[data-vi] { cursor: pointer; }
     /* selected-for-edit highlight */
     .hist-box.selected, .actual-box.selected { background: var(--c); color: #fff; }
-    .actual-box.selected .val, .actual-box.selected .darts { color: #fff; }
+    .actual-box.selected .val { color: #fff; }
 
     .main-col { display: flex; flex-direction: column; gap: 3px; }
     .big-rem {
@@ -62,11 +69,10 @@
       font-size: 34px; font-weight: 800; color: var(--c); text-align: center; line-height: 1.1;
     }
     .actual-box {
-      border: 2px solid var(--c); border-radius: 9px; padding: 2px 6px 3px;
+      position: relative; border: 2px solid var(--c); border-radius: 9px; padding: 3px 6px;
       color: var(--c); text-align: center; line-height: 1;
     }
-    .actual-box .val   { font-size: 25px; font-weight: 800; }
-    .actual-box .darts { display: block; font-size: 12px; font-weight: 600; margin-top: 1px; }
+    .actual-box .val { font-size: 25px; font-weight: 800; }
 
     /* middle: sets / legs */
     .mid-col { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
@@ -149,14 +155,14 @@
       <!-- opponent (left, gray) — static placeholder in solo prototype -->
       <div class="panel opp">
         <div class="hist-col">
-          <div class="hist-box">60<span class="darts">(12)</span></div>
-          <div class="hist-box">100<span class="darts">(9)</span></div>
-          <div class="hist-box">60<span class="darts">(6)</span></div>
-          <div class="hist-box">40<span class="darts">(3)</span></div>
+          <div class="hist-box">60<span class="darts">12</span></div>
+          <div class="hist-box">100<span class="darts">9</span></div>
+          <div class="hist-box">60<span class="darts">6</span></div>
+          <div class="hist-box">40<span class="darts">3</span></div>
         </div>
         <div class="main-col">
           <div class="big-rem">141</div>
-          <div class="actual-box"><span class="val">100</span><span class="darts">(15)</span></div>
+          <div class="actual-box"><span class="val">100</span><span class="darts">15</span></div>
         </div>
       </div>
 
@@ -621,7 +627,8 @@
     playerRemainingEl.textContent = String(STATE.remaining);
 
     // Actual-throw box = latest visit (index n-1): darts + edit wiring
-    actualDartsEl.textContent = n ? `(${n * 3})` : "";
+    actualDartsEl.textContent = n ? `${n * 3}` : "";
+    actualDartsEl.style.display = n ? "" : "none";
     if (n) { actualBoxEl.dataset.vi = n - 1; } else { delete actualBoxEl.dataset.vi; }
     actualBoxEl.classList.toggle("selected", STATE.editIndex === n - 1 && n > 0);
     // (the throw value itself is written by render() so it also previews on drag)
@@ -631,7 +638,7 @@
     for (let k = n - 2; k >= 0 && slots.length < 4; k--) {
       const v = STATE.visits[k];
       const sel = STATE.editIndex === k ? " selected" : "";
-      slots.push(`<div class="hist-box${sel}" data-vi="${k}">${v.bust ? "✗" : v.score}<span class="darts">(${(k + 1) * 3})</span></div>`);
+      slots.push(`<div class="hist-box${sel}" data-vi="${k}">${v.bust ? "✗" : v.score}<span class="darts">${(k + 1) * 3}</span></div>`);
     }
     while (slots.length < 4) slots.push(`<div class="hist-box empty"></div>`);
     histColEl.innerHTML = slots.join("");
