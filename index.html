@@ -89,10 +89,10 @@
     .rem-toggle.active .rem-toggle__dot { background: #fff; }
 
     .seg-line { stroke: var(--blue-dark); stroke-width: 1.4; }
-    .seg-num  { font-size: 19px; font-weight: 600; fill: var(--text);
+    .seg-num  { font-size: 25px; font-weight: 600; fill: var(--text);
       text-anchor: middle; }
     .seg-hit  { fill: #ffce3a; stroke: #b8860b; stroke-width: 2; }
-    .seg-num-active { font-size: 21px; font-weight: 800; fill: #1a1a1a; }
+    .seg-num-active { font-size: 27px; font-weight: 800; fill: #1a1a1a; }
     .bubble   { fill: var(--green-bub); stroke: #1d5a20; stroke-width: 2; }
     .bubble-active { fill: #3aa33f; stroke: #0f3d12; stroke-width: 3; }
     .bubble-text { fill: #fff; font-size: 14px; font-weight: 700;
@@ -342,6 +342,16 @@
       cx: T.cx, cy: T.cy, rx: T.ringOuterRx, ry: T.ringOuterRy,
       fill: "var(--blue-ring)", stroke: "var(--blue-dark)", "stroke-width": 2
     }));
+
+    // 1b) darker upper-arc cells (i=0..4 upper-right, i=15..19 upper-left)
+    for (const i of [15,16,17,18,19,0,1,2,3,4]) {
+      const a1 = deg(T.startAngleDeg + i * step - step / 2);
+      const a2 = deg(T.startAngleDeg + i * step + step / 2);
+      const p1x = T.cx + T.ringOuterRx * Math.cos(a1), p1y = T.cy + T.ringOuterRy * Math.sin(a1);
+      const p2x = T.cx + T.ringOuterRx * Math.cos(a2), p2y = T.cy + T.ringOuterRy * Math.sin(a2);
+      const d = `M ${T.cx} ${T.cy} L ${p1x} ${p1y} A ${T.ringOuterRx} ${T.ringOuterRy} 0 0 1 ${p2x} ${p2y} Z`;
+      svg.appendChild(el("path", { d, fill: "#9ac8e8", stroke: "none" }));
+    }
 
     // 2) segment divider lines (masked by the green disc next)
     for (let i = 0; i < T.segCount; i++) {
