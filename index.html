@@ -280,14 +280,29 @@
   }
 
   // Map a flat sorted vals array onto the 20 ring segments.
-  // All ranges: lower half → bottom arc left→right, upper half → upper arc left→right.
+  // Lower values → bottom arc (left→right), higher values → upper arc (left→right).
   function buildSegmentValues(vals, rangeStr) {
-    const result    = new Array(T.segCount).fill(null);
+    const result     = new Array(T.segCount).fill(null);
     const bottomSegs = [14,13,12,11,10,9,8,7,6,5];
     const upperSegs  = [15,16,17,18,19,0,1,2,3,4];
+
+    if (rangeStr === "0-9") {
+      // All 10 on the bottom arc only
+      bottomSegs.forEach((seg, j) => { result[seg] = vals[j]; });
+      return result;
+    }
+
+    if (rangeStr === "170-180") {
+      // 170-179 fill all 10 bottom slots; 180 sits at the first upper slot
+      bottomSegs.forEach((seg, j) => { result[seg] = vals[j]; });
+      result[upperSegs[0]] = vals[10];
+      return result;
+    }
+
+    // Default: lower half on bottom, upper half on upper
     const half = Math.floor(vals.length / 2);
-    bottomSegs.forEach((seg, j) => { if (j < half)               result[seg] = vals[j]; });
-    upperSegs .forEach((seg, j) => { if (j < vals.length - half)  result[seg] = vals[half + j]; });
+    bottomSegs.forEach((seg, j) => { if (j < half)              result[seg] = vals[j]; });
+    upperSegs .forEach((seg, j) => { if (j < vals.length - half) result[seg] = vals[half + j]; });
     return result;
   }
 
