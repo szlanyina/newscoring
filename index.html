@@ -277,6 +277,7 @@
     settleScore: null,   // committed score shown on the bubble during its 500ms linger
     editIndex: null,     // visit index selected for overwrite (click a throw box)
     undoStack: [],       // operation log: { type:'add' } | { type:'edit', index, oldScore }
+    remMode: false,      // REM toggle: dial the new remaining instead of the throw
   };
 
   // =========================================================================
@@ -514,11 +515,15 @@
       drawBubble(STATE.activeRange, p, override);
     }
 
-    // 6) centre "Score:" shows last committed throw; previews current cell while dragging
+    // 6) actual-throw box shows last committed throw; previews while dragging.
+    //    In REM mode the dialed value is the remaining, so preview the resulting throw.
     let scoreTxt = STATE.lastScore != null ? String(STATE.lastScore) : "–";
     if (STATE.dragging && STATE.previewIdx != null) {
       const v = segVals[STATE.previewIdx];
-      if (v != null) scoreTxt = String(v);
+      if (v != null) {
+        if (STATE.remMode) { const t = STATE.remaining - v; scoreTxt = t >= 0 ? String(t) : "✗"; }
+        else scoreTxt = String(v);
+      }
     }
     scoreEl.style.color = "";
     scoreEl.textContent = scoreTxt;
@@ -553,7 +558,8 @@
   function endDrag(e) {
     if (!STATE.dragging) return;
     const segVals = buildSegmentValues(rangeValues(STATE.activeRange), RANGES[STATE.activeRange]);
-    const committed = (STATE.previewIdx != null) ? segVals[STATE.previewIdx] : null;
+    let committed = (STATE.previewIdx != null) ? segVals[STATE.previewIdx] : null;
+    let recordedScore = committed;   // the throw value (shown on the bubble during linger)
 
     if (committed != null) {
       if (STATE.editIndex != null && STATE.editIndex < STATE.visits.length) {
@@ -563,7 +569,22 @@
         STATE.visits[idx].score = committed;
         STATE.editIndex = null;
         recompute();
+        recordedScore = committed;
         if (navigator.vibrate) navigator.vibrate(15);
+      } else if (STATE.remMode) {
+        // REM mode: the dialed value is the NEW remaining; throw = current - dialed.
+        const newRem     = committed;
+        const throwScore = STATE.remaining - newRem;
+        if (throwScore < 0) {
+          committed = null;          // dialed remaining exceeds current — invalid, no commit
+        } else {
+          STATE.remaining = newRem;
+          STATE.visits.push({ score: throwScore, bust: false, after: newRem });
+          STATE.lastScore = throwScore;
+          STATE.undoStack.push({ type: "add" });
+          recordedScore = throwScore;
+          if (navigator.vibrate) navigator.vibrate(15);
+        }
       } else {
         const newRem = STATE.remaining - committed;
         const bust   = newRem < 0;
@@ -571,20 +592,23 @@
         STATE.visits.push({ score: committed, bust, after: STATE.remaining });
         STATE.lastScore = committed;
         STATE.undoStack.push({ type: "add" });
+        recordedScore = committed;
         if (navigator.vibrate) navigator.vibrate(bust ? [20,30,20] : 15);
       }
-      updateHistory();
-      if (STATE.remaining === 0) handleWin();
+      if (committed != null) {
+        updateHistory();
+        if (STATE.remaining === 0) handleWin();
+      }
     }
 
     STATE.dragging = false;
     STATE.previewIdx = null;
     try { svg.releasePointerCapture(e.pointerId); } catch {}
 
-    // Dropped on a scoring cell → bubble rests there 500ms showing the recorded
-    // score, then snaps home. Non-scoring area → snap home immediately.
+    // Dropped on a scoring cell → bubble rests there 700ms showing the recorded
+    // throw, then snaps home. Non-scoring area → snap home immediately.
     if (committed != null) {
-      STATE.settleScore = committed;
+      STATE.settleScore = recordedScore;
       settleTimer = setTimeout(() => {
         settleTimer = null;
         STATE.dragPos = null;
@@ -704,8 +728,9 @@
   // Remaining-score toggle (behaviour wired up later)
   const remToggle = document.getElementById("remToggle");
   remToggle.addEventListener("click", () => {
-    const on = remToggle.classList.toggle("active");
-    remToggle.setAttribute("aria-pressed", on);
+    STATE.remMode = remToggle.classList.toggle("active");
+    remToggle.setAttribute("aria-pressed", STATE.remMode);
+    render();
   });
   </script>
 </body>
