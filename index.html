@@ -430,7 +430,7 @@
       const isSel = STATE.dragging && STATE.previewIdx === i && segVals[i] != null;
       svg.appendChild(el("path", {
         d,
-        fill: isSel ? "var(--green-bub)" : (upperSet.has(i) ? "#9ac8e8" : "var(--blue-ring)"),
+        fill: isSel ? "var(--green-bub)" : (upperSet.has(i) ? "var(--blue-ring)" : "#9ac8e8"),
         stroke: "#fff", "stroke-width": 3, "stroke-linejoin": "round"
       }));
     }
