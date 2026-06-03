@@ -89,7 +89,7 @@
 
     /* ---------- remaining-score toggle ---------- */
     .rem-toggle {
-      position: absolute; top: 23px; right: 38px;
+      position: absolute; top: 13px; right: 23px;
       display: flex; flex-direction: column; align-items: center; gap: 3px;
       background: var(--blue-dark); color: #fff;
       border: none; border-radius: 12px;
@@ -276,6 +276,7 @@
     dragPos: null,       // live pointer pos — the held bubble follows it
     settleScore: null,   // committed score shown on the bubble during its 500ms linger
     editIndex: null,     // visit index selected for overwrite (click a throw box)
+    undoStack: [],       // operation log: { type:'add' } | { type:'edit', index, oldScore }
   };
 
   // =========================================================================
@@ -557,7 +558,9 @@
     if (committed != null) {
       if (STATE.editIndex != null && STATE.editIndex < STATE.visits.length) {
         // Overwrite the selected throw, then replay the leg from the start.
-        STATE.visits[STATE.editIndex].score = committed;
+        const idx = STATE.editIndex;
+        STATE.undoStack.push({ type: "edit", index: idx, oldScore: STATE.visits[idx].score });
+        STATE.visits[idx].score = committed;
         STATE.editIndex = null;
         recompute();
         if (navigator.vibrate) navigator.vibrate(15);
@@ -567,6 +570,7 @@
         if (!bust) STATE.remaining = newRem;
         STATE.visits.push({ score: committed, bust, after: STATE.remaining });
         STATE.lastScore = committed;
+        STATE.undoStack.push({ type: "add" });
         if (navigator.vibrate) navigator.vibrate(bust ? [20,30,20] : 15);
       }
       updateHistory();
@@ -643,8 +647,9 @@
     while (slots.length < 4) slots.push(`<div class="hist-box empty"></div>`);
     histColEl.innerHTML = slots.join("");
 
-    undoBtn.disabled = STATE.visits.length === 0;
-    undoBtn.style.opacity = STATE.visits.length === 0 ? "0.35" : "";
+    const canUndo = STATE.undoStack.length > 0;
+    undoBtn.disabled = !canUndo;
+    undoBtn.style.opacity = canUndo ? "" : "0.35";
   }
   updateHistory();   // initial empty history
 
@@ -659,8 +664,13 @@
   });
 
   undoBtn.addEventListener("click", () => {
-    if (STATE.visits.length === 0) return;
-    STATE.visits.pop();
+    const op = STATE.undoStack.pop();
+    if (!op) return;
+    if (op.type === "add") {
+      STATE.visits.pop();                         // remove the throw that was added
+    } else if (op.type === "edit") {
+      STATE.visits[op.index].score = op.oldScore; // restore the overwritten score
+    }
     STATE.editIndex = null;
     recompute();
     updateHistory();
@@ -682,6 +692,7 @@
       STATE.visits = [];
       STATE.editIndex = null;
       STATE.lastScore = null;
+      STATE.undoStack = [];
       overlay.remove();
       updateHistory();
       render();
