@@ -34,34 +34,44 @@
     /* ---------- header scoreboard ---------- */
     .scoreboard {
       border: 3px solid var(--frame); border-radius: 14px;
-      padding: 5px 12px 7px; display: grid;
-      grid-template-columns: 1fr auto 1fr; align-items: start; gap: 6px;
-    }
-    .sb-title { grid-column: 1 / -1; text-align: center; font-weight: 700;
-      text-decoration: underline; font-size: 15px; margin-bottom: 0; }
-    .opp-name { font-size: 20px; font-weight: 700; letter-spacing: 1px; line-height: 1.05; }
-    .player-name { font-size: 30px; font-weight: 800; color: var(--pink); line-height: 1; }
-    .sub { font-size: 11px; line-height: 1.25; color: #333; }
-    .side-left { text-align: left; }
-    .side-right { text-align: right; }
-    .legbox {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 2px;
-      border: 2px solid var(--blue-dark); border-radius: 6px; overflow: hidden;
-      font-size: 14px; font-weight: 700; min-width: 64px;
-    }
-    .legbox span { padding: 2px 6px; }
-    .legbox .l { background: #eef6fb; color: var(--text); }
-    .legbox .r { background: #eef6fb; color: var(--pink); }
-    .esc {
-      background: var(--blue-dark); color: #fff; border: none; border-radius: 10px;
-      padding: 5px 12px; font-size: 14px; font-weight: 700;
+      padding: 6px 8px; display: grid;
+      grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: stretch;
     }
 
-    /* ---------- score readout (inside header, under the leg box) ---------- */
-    .center-col { display: flex; flex-direction: column; align-items: center; gap: 7px; }
-    .score-inline { display: flex; flex-direction: column; align-items: center; line-height: 1; }
-    .score-inline-label { font-size: 13px; font-weight: 700; }
-    .score-inline-val { font-size: 32px; font-weight: 800; }
+    /* a player panel: history column + main (remaining + actual throw) */
+    .panel { display: flex; gap: 5px; }
+    .panel.opp    { --c: #9a9a9a; justify-content: flex-start; }
+    .panel.player { --c: var(--pink); justify-content: flex-end; }
+
+    .hist-col { display: flex; flex-direction: column; gap: 4px; }
+    .hist-box {
+      position: relative; border: 2px solid var(--c); border-radius: 8px;
+      min-width: 56px; height: 30px; display: flex; align-items: center; justify-content: center;
+      font-size: 17px; font-weight: 700; color: var(--c);
+    }
+    .hist-box .darts { position: absolute; top: -3px; right: 3px; font-size: 10px; font-weight: 600; }
+    .hist-box.empty { border-color: #ccc; }
+
+    .main-col { display: flex; flex-direction: column; gap: 5px; }
+    .big-rem {
+      border: 2px solid var(--c); border-radius: 10px; padding: 2px 12px;
+      font-size: 34px; font-weight: 800; color: var(--c); text-align: center; line-height: 1.15;
+    }
+    .actual-box {
+      border: 2px solid var(--c); border-radius: 10px; padding: 3px 12px 4px;
+      color: var(--c); text-align: center; line-height: 1;
+    }
+    .actual-box .val   { font-size: 26px; font-weight: 800; }
+    .actual-box .darts { display: block; font-size: 12px; font-weight: 600; margin-top: 1px; }
+
+    /* middle: sets / legs */
+    .mid-col { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+    .mid-title  { font-size: 13px; font-weight: 700; color: var(--blue-dark); white-space: nowrap; }
+    .mid-boxes  { display: flex; gap: 5px; }
+    .mid-box    { background: var(--frame); color: #fff; border-radius: 8px; min-width: 32px; height: 32px;
+                  display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; }
+    .mid-box.leg { background: #1f7fa6; }
+    .mid-divider { width: 100%; height: 1px; background: #ccc; margin: 4px 0; }
 
     /* ---------- radial area ---------- */
     .radial-wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; position: relative; }
@@ -131,33 +141,45 @@
 
     <!-- ===== header scoreboard ===== -->
     <div class="scoreboard">
-      <div class="sb-title">Best of AB sets</div>
 
-      <div class="side-left">
-        <div style="font-size:13px;">Opponent</div>
-        <div class="opp-name">XXX</div>
-        <div class="sub">XXX (96)</div>
-        <div class="sub">XXX (93)</div>
-      </div>
-
-      <div class="center-col">
-        <div class="legbox" title="legs / sets">
-          <span class="l">AA</span><span class="r">BB</span>
-          <span class="l">aa</span><span class="r">bb</span>
+      <!-- opponent (left, gray) — static placeholder in solo prototype -->
+      <div class="panel opp">
+        <div class="hist-col">
+          <div class="hist-box">60<span class="darts">(12)</span></div>
+          <div class="hist-box">100<span class="darts">(9)</span></div>
+          <div class="hist-box">60<span class="darts">(6)</span></div>
+          <div class="hist-box">40<span class="darts">(3)</span></div>
+          <div class="hist-box empty"></div>
         </div>
-        <div class="score-inline">
-          <span class="score-inline-label">Actual throw:</span>
-          <span class="score-inline-val" id="scoreVal">–</span>
+        <div class="main-col">
+          <div class="big-rem">141</div>
+          <div class="actual-box"><span class="val">100</span><span class="darts">(15)</span></div>
         </div>
       </div>
 
-      <div class="side-right">
-        <button class="esc">esc</button>
-        <div style="font-size:13px; margin-top:6px;">Player:</div>
-        <div class="player-name" id="playerRemaining">501</div>
-        <div class="sub" id="visit1">–</div>
-        <div class="sub" id="visit2">–</div>
-        <div class="sub" id="visit3">–</div>
+      <!-- middle: sets / legs -->
+      <div class="mid-col">
+        <div class="mid-title">1 of 1 sets</div>
+        <div class="mid-boxes">
+          <div class="mid-box">11</div><div class="mid-box">11</div>
+        </div>
+        <div class="mid-divider"></div>
+        <div class="mid-title">23 of 29 legs</div>
+        <div class="mid-boxes">
+          <div class="mid-box leg">11</div><div class="mid-box leg">12</div>
+        </div>
+      </div>
+
+      <!-- player (right, magenta) — wired to live state -->
+      <div class="panel player">
+        <div class="main-col">
+          <div class="big-rem" id="playerRemaining">501</div>
+          <div class="actual-box">
+            <span class="val" id="scoreVal">–</span>
+            <span class="darts" id="actualDarts"></span>
+          </div>
+        </div>
+        <div class="hist-col" id="histCol"></div>
       </div>
     </div>
 
@@ -562,24 +584,32 @@
   const undoBtn = document.getElementById("undoBtn");
 
   const playerRemainingEl = document.getElementById("playerRemaining");
-  const visitEls = [1,2,3].map(n => document.getElementById("visit" + n));
+  const actualDartsEl     = document.getElementById("actualDarts");
+  const histColEl         = document.getElementById("histCol");
 
   function updateHistory() {
-    // Remaining score in the magenta player-name slot
+    const n = STATE.visits.length;
+
+    // Big number = remaining score
     playerRemainingEl.textContent = String(STATE.remaining);
 
-    // Last 3 visits in the sub rows (most recent first), format: "score (3)" or "BUST"
-    const last3 = STATE.visits.slice(-3).reverse();
-    visitEls.forEach((el, i) => {
-      const v = last3[i];
-      if (!v) { el.textContent = "–"; el.style.color = ""; return; }
-      el.textContent = v.bust ? `✗ ${v.score} (BUST)` : `${v.score} (3)`;
-      el.style.color = v.bust ? "#e63946" : "";
-    });
+    // Actual-throw darts = total darts thrown after the latest visit (3 per visit)
+    actualDartsEl.textContent = n ? `(${n * 3})` : "";
+    // (the throw value itself is written by render() so it also previews on drag)
+
+    // History column = previous visits (newest at top), 5 slots, with cumulative darts
+    const slots = [];
+    for (let k = n - 2; k >= 0 && slots.length < 5; k--) {
+      const v = STATE.visits[k];
+      slots.push(`<div class="hist-box">${v.bust ? "✗" : v.score}<span class="darts">(${(k + 1) * 3})</span></div>`);
+    }
+    while (slots.length < 5) slots.push(`<div class="hist-box empty"></div>`);
+    histColEl.innerHTML = slots.join("");
 
     undoBtn.disabled = STATE.visits.length === 0;
     undoBtn.style.opacity = STATE.visits.length === 0 ? "0.35" : "";
   }
+  updateHistory();   // initial empty history
 
   undoBtn.addEventListener("click", () => {
     if (STATE.visits.length === 0) return;
