@@ -100,25 +100,6 @@
     .center-num { fill: var(--text); font-size: 60px; font-weight: 700;
       text-anchor: middle; dominant-baseline: central; }
 
-    /* ---------- visit history strip ---------- */
-    .history-strip {
-      display: flex; align-items: center; gap: 5px; padding: 0 6px 4px;
-    }
-    .undo-btn {
-      background: var(--blue-dark); color: #fff; border: none;
-      border-radius: 10px; padding: 6px 13px;
-      font-size: 18px; font-weight: 700; cursor: pointer; flex-shrink: 0;
-    }
-    .undo-btn:disabled { opacity: 0.3; }
-    .hist-chip {
-      flex: 1; text-align: center; border-radius: 8px;
-      padding: 4px 2px; font-size: 12px; font-weight: 700; line-height: 1.2;
-      background: #eef6fb; color: var(--text);
-    }
-    .hist-chip.bust { background: #fde8e8; color: #c00; }
-    .hist-chip__score { font-size: 15px; }
-    .hist-chip__rem   { font-size: 10px; color: #888; }
-    .hist-chip.bust .hist-chip__rem { color: #c00; }
 
     /* ---------- win overlay ---------- */
     .win-overlay {
@@ -190,13 +171,8 @@
       <svg id="scorer" viewBox="0 0 600 790" aria-label="radial score selector"></svg>
     </div>
 
-    <!-- ===== visit history + undo ===== -->
-    <div class="history-strip" id="histStrip">
-      <button class="undo-btn" id="undoBtn" disabled>↩</button>
-    </div>
-
     <!-- ===== footer ===== -->
-    <button class="back">&lt;-- BACK</button>
+    <button class="back" id="undoBtn">UNDO</button>
   </div>
 
   <script>
@@ -494,8 +470,7 @@
   svg.addEventListener("contextmenu", (e) => e.preventDefault());
 
   // ========================= HISTORY / UNDO / WIN ============================
-  const histStrip = document.getElementById("histStrip");
-  const undoBtn   = document.getElementById("undoBtn");
+  const undoBtn = document.getElementById("undoBtn");
 
   const playerRemainingEl = document.getElementById("playerRemaining");
   const visitEls = [1,2,3].map(n => document.getElementById("visit" + n));
@@ -513,24 +488,15 @@
       el.style.color = v.bust ? "#e63946" : "";
     });
 
-    // Bottom history chips
-    [...histStrip.children].forEach(c => { if (c !== undoBtn) c.remove(); });
-    STATE.visits.slice(-5).reverse().forEach(v => {
-      const chip = document.createElement("div");
-      chip.className = "hist-chip" + (v.bust ? " bust" : "");
-      chip.innerHTML =
-        `<div class="hist-chip__score">${v.bust ? "✗ " : ""}${v.score}</div>` +
-        `<div class="hist-chip__rem">${v.bust ? "BUST" : v.after}</div>`;
-      histStrip.appendChild(chip);
-    });
-
     undoBtn.disabled = STATE.visits.length === 0;
+    undoBtn.style.opacity = STATE.visits.length === 0 ? "0.35" : "";
   }
 
   undoBtn.addEventListener("click", () => {
     if (STATE.visits.length === 0) return;
     const last = STATE.visits.pop();
     if (!last.bust) STATE.remaining += last.score;
+    STATE.lastScore = STATE.visits.length ? STATE.visits[STATE.visits.length - 1].score : null;
     updateHistory();
     render();
   });
