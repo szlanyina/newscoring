@@ -241,6 +241,7 @@
     remaining: 501,      // running 501 countdown
     visits: [],          // { score, bust, after } — full visit log
     dragPos: null,       // live pointer pos — the held bubble follows it
+    settleScore: null,   // committed score shown on the bubble during its 500ms linger
   };
 
   // =========================================================================
@@ -384,17 +385,20 @@
     return null;                                    // inner disc / outside = no value
   }
 
-  // draw one range bubble (circle + two-decade label) at a given centre
-  function drawBubble(i, p) {
+  // draw one range bubble at a given centre. labelOverride (e.g. a recorded
+  // score) replaces the usual two-decade label when provided.
+  function drawBubble(i, p, labelOverride) {
     svg.appendChild(el("circle", {
       cx: p.x, cy: p.y, r: T.bubbleR,
       class: i === STATE.activeRange ? "bubble bubble-active" : "bubble"
     }));
-    const lo = Number(RANGES[i].split("-")[0]);
-    const t  = el("text", { x: p.x, y: p.y, class: "bubble-text" });
-    if (RANGES[i] === "0-9") {
+    const t = el("text", { x: p.x, y: p.y, class: "bubble-text" });
+    if (labelOverride != null) {
+      t.appendChild(el("tspan", { x: p.x, dy: "0" }, String(labelOverride)));
+    } else if (RANGES[i] === "0-9") {
       t.appendChild(el("tspan", { x: p.x, dy: "0" }, "0"));
     } else {
+      const lo = Number(RANGES[i].split("-")[0]);
       t.appendChild(el("tspan", { x: p.x, dy: "-0.35em" }, String(lo)));
       t.appendChild(el("tspan", { x: p.x, dy: "1.1em" },  String(lo + 10)));
     }
@@ -462,7 +466,9 @@
     if (STATE.activeRange != null) {
       const home = bubbleCenter(STATE.activeRange);
       const p = STATE.dragPos || home;   // held / settling → drop pos; else home
-      drawBubble(STATE.activeRange, p);
+      // While settling on a scored drop, show the recorded score instead of the range.
+      const override = STATE.settleScore;
+      drawBubble(STATE.activeRange, p, override);
     }
 
     // 6) centre "Score:" shows last committed throw; previews current cell while dragging
@@ -482,6 +488,7 @@
     if (b == null) return;            // only a range bubble starts a throw
     e.preventDefault();
     if (settleTimer) { clearTimeout(settleTimer); settleTimer = null; }  // cancel pending snap-home
+    STATE.settleScore = null;
     try { svg.setPointerCapture(e.pointerId); } catch {}
     STATE.activeRange = b;
     STATE.dragging = true;
@@ -522,16 +529,19 @@
     STATE.previewIdx = null;
     try { svg.releasePointerCapture(e.pointerId); } catch {}
 
-    // Dropped on a scoring cell → let the bubble rest there 500ms, then snap
-    // home. Dropped on a non-scoring area → snap home immediately.
+    // Dropped on a scoring cell → bubble rests there 500ms showing the recorded
+    // score, then snaps home. Non-scoring area → snap home immediately.
     if (committed != null) {
+      STATE.settleScore = committed;
       settleTimer = setTimeout(() => {
         settleTimer = null;
         STATE.dragPos = null;
+        STATE.settleScore = null;
         render();
       }, 500);
     } else {
       STATE.dragPos = null;
+      STATE.settleScore = null;
     }
     render();
   }
