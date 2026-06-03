@@ -89,7 +89,7 @@
     .rem-toggle.active .rem-toggle__dot { background: #fff; }
 
     .seg-line { stroke: var(--blue-dark); stroke-width: 1.4; }
-    .seg-num  { font-size: 25px; font-weight: 600; fill: var(--text);
+    .seg-num  { font-size: 25px; font-weight: 600; fill: #fff;
       text-anchor: middle; }
     .seg-num-active { font-size: 27px; font-weight: 800; fill: #fff; }
     .bubble   { fill: var(--green-bub); stroke: #1d5a20; stroke-width: 2; }
@@ -432,7 +432,7 @@
       const isSel = STATE.dragging && STATE.previewIdx === i && segVals[i] != null;
       svg.appendChild(el("path", {
         d,
-        fill: isSel ? "var(--green-bub)" : (upperSet.has(i) ? "var(--blue-ring)" : "#9ac8e8"),
+        fill: isSel ? "var(--green-bub)" : (upperSet.has(i) ? "#5a9bd4" : "#34719e"),
         stroke: "#fff", "stroke-width": 3, "stroke-linejoin": "round"
       }));
     }
