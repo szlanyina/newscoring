@@ -46,10 +46,10 @@
     .hist-col { display: flex; flex-direction: column; gap: 3px; }
     .hist-box {
       position: relative; border: 2px solid var(--c); border-radius: 7px;
-      min-width: 34px; height: 24px; display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 700; color: var(--c);
+      min-width: 40px; height: 28px; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700; color: var(--c);
     }
-    .hist-box .darts { position: absolute; top: -3px; right: 2px; font-size: 8px; font-weight: 600; }
+    .hist-box .darts { position: absolute; top: -4px; right: 2px; font-size: 10px; font-weight: 600; }
     .hist-box.empty { border-color: #ccc; }
     .hist-box[data-vi], .actual-box[data-vi] { cursor: pointer; }
     /* selected-for-edit highlight */
@@ -58,15 +58,15 @@
 
     .main-col { display: flex; flex-direction: column; gap: 3px; }
     .big-rem {
-      border: 2px solid var(--c); border-radius: 9px; padding: 1px 5px;
-      font-size: 24px; font-weight: 800; color: var(--c); text-align: center; line-height: 1.15;
+      border: 2px solid var(--c); border-radius: 9px; padding: 1px 6px;
+      font-size: 34px; font-weight: 800; color: var(--c); text-align: center; line-height: 1.1;
     }
     .actual-box {
-      border: 2px solid var(--c); border-radius: 9px; padding: 2px 5px 3px;
+      border: 2px solid var(--c); border-radius: 9px; padding: 2px 6px 3px;
       color: var(--c); text-align: center; line-height: 1;
     }
-    .actual-box .val   { font-size: 18px; font-weight: 800; }
-    .actual-box .darts { display: block; font-size: 10px; font-weight: 600; margin-top: 1px; }
+    .actual-box .val   { font-size: 25px; font-weight: 800; }
+    .actual-box .darts { display: block; font-size: 12px; font-weight: 600; margin-top: 1px; }
 
     /* middle: sets / legs */
     .mid-col { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
@@ -153,7 +153,6 @@
           <div class="hist-box">100<span class="darts">(9)</span></div>
           <div class="hist-box">60<span class="darts">(6)</span></div>
           <div class="hist-box">40<span class="darts">(3)</span></div>
-          <div class="hist-box empty"></div>
         </div>
         <div class="main-col">
           <div class="big-rem">141</div>
@@ -627,14 +626,14 @@
     actualBoxEl.classList.toggle("selected", STATE.editIndex === n - 1 && n > 0);
     // (the throw value itself is written by render() so it also previews on drag)
 
-    // History column = previous visits (newest at top), 5 slots, with cumulative darts
+    // History column = previous visits (newest at top), 4 slots, with cumulative darts
     const slots = [];
-    for (let k = n - 2; k >= 0 && slots.length < 5; k--) {
+    for (let k = n - 2; k >= 0 && slots.length < 4; k--) {
       const v = STATE.visits[k];
       const sel = STATE.editIndex === k ? " selected" : "";
       slots.push(`<div class="hist-box${sel}" data-vi="${k}">${v.bust ? "✗" : v.score}<span class="darts">(${(k + 1) * 3})</span></div>`);
     }
-    while (slots.length < 5) slots.push(`<div class="hist-box empty"></div>`);
+    while (slots.length < 4) slots.push(`<div class="hist-box empty"></div>`);
     histColEl.innerHTML = slots.join("");
 
     undoBtn.disabled = STATE.visits.length === 0;
