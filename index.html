@@ -392,6 +392,7 @@
       cx: p.x, cy: p.y, r: T.bubbleR,
       class: i === STATE.activeRange ? "bubble bubble-active" : "bubble"
     }));
+    if (STATE.dragging) return;            // no bubble labels while dragging
     const t = el("text", { x: p.x, y: p.y, class: "bubble-text" });
     if (labelOverride != null) {
       t.appendChild(el("tspan", { x: p.x, dy: "0" }, String(labelOverride)));
@@ -438,9 +439,9 @@
       fill: "#fff", stroke: "none"
     }));
 
-    // 4) exact-value numbers — placed at each cell's centre.
+    // 4) exact-value numbers — only while a bubble is being dragged.
     //    Selected cell is filled green, so its number turns white.
-    for (let i = 0; i < T.segCount; i++) {
+    for (let i = 0; STATE.dragging && i < T.segCount; i++) {
       if (segVals[i] == null) continue;
       // Cell centre = average of its four boundary corners.
       const c = cellCorners(i);
