@@ -33,7 +33,7 @@
 
     /* ---------- header scoreboard ---------- */
     .scoreboard {
-      border: 3px solid var(--frame); border-radius: 14px;
+      border: none; border-radius: 14px;
       padding: 5px 5px; display: grid;
       grid-template-columns: auto 1fr auto; gap: 4px; align-items: stretch;
     }
@@ -113,14 +113,14 @@
     .rem-toggle { right: 23px; opacity: 0.55; }
     .menu-btn   { left: 23px;  opacity: 0.85; }
     .rem-toggle.active {
-      background: var(--pink); opacity: 1;
+      background: var(--blue-dark); opacity: 1; color: #ff9500;
     }
     .rem-toggle__dot {
       width: 9px; height: 9px; border-radius: 50%;
       background: rgba(255,255,255,0.4);
       transition: background 0.15s;
     }
-    .rem-toggle.active .rem-toggle__dot { background: #fff; }
+    .rem-toggle.active .rem-toggle__dot { background: #ff9500; }
     .menu-btn__icon { font-size: 14px; line-height: 1; }
 
     .seg-line { stroke: var(--blue-dark); stroke-width: 1.4; }
