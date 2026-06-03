@@ -392,7 +392,9 @@
       cx: p.x, cy: p.y, r: T.bubbleR,
       class: i === STATE.activeRange ? "bubble bubble-active" : "bubble"
     }));
-    if (STATE.dragging) return;            // no bubble labels while dragging
+    // Only the settling bubble (with its score override) shows a label while a
+    // drag is in progress or a drop is still settling; everything else is blank.
+    if (labelOverride == null && (STATE.dragging || STATE.settleScore != null)) return;
     const t = el("text", { x: p.x, y: p.y, class: "bubble-text" });
     if (labelOverride != null) {
       t.appendChild(el("tspan", { x: p.x, dy: "0" }, String(labelOverride)));
@@ -539,7 +541,7 @@
         STATE.dragPos = null;
         STATE.settleScore = null;
         render();
-      }, 500);
+      }, 700);
     } else {
       STATE.dragPos = null;
       STATE.settleScore = null;
