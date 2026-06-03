@@ -100,6 +100,44 @@
     .center-num { fill: var(--text); font-size: 60px; font-weight: 700;
       text-anchor: middle; dominant-baseline: central; }
 
+    /* ---------- visit history strip ---------- */
+    .history-strip {
+      display: flex; align-items: center; gap: 5px; padding: 0 6px 4px;
+    }
+    .undo-btn {
+      background: var(--blue-dark); color: #fff; border: none;
+      border-radius: 10px; padding: 6px 13px;
+      font-size: 18px; font-weight: 700; cursor: pointer; flex-shrink: 0;
+    }
+    .undo-btn:disabled { opacity: 0.3; }
+    .hist-chip {
+      flex: 1; text-align: center; border-radius: 8px;
+      padding: 4px 2px; font-size: 12px; font-weight: 700; line-height: 1.2;
+      background: #eef6fb; color: var(--text);
+    }
+    .hist-chip.bust { background: #fde8e8; color: #c00; }
+    .hist-chip__score { font-size: 15px; }
+    .hist-chip__rem   { font-size: 10px; color: #888; }
+    .hist-chip.bust .hist-chip__rem { color: #c00; }
+
+    /* ---------- win overlay ---------- */
+    .win-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 99;
+    }
+    .win-card {
+      background: #fff; border-radius: 20px; padding: 32px 40px;
+      text-align: center;
+    }
+    .win-card h2 { font-size: 2.2rem; margin: 0 0 8px; }
+    .win-card p  { color: #555; margin: 0 0 20px; }
+    .win-card button {
+      background: var(--blue-dark); color: #fff; border: none;
+      border-radius: 12px; padding: 10px 28px; font-size: 16px; font-weight: 700; cursor: pointer;
+    }
+
     /* ---------- footer ---------- */
     .back {
       align-self: center; background: var(--blue-dark); color: #fff; border: none;
@@ -128,7 +166,7 @@
           <span class="l">aa</span><span class="r">bb</span>
         </div>
         <div class="score-inline">
-          <span class="score-inline-label">Score:</span>
+          <span class="score-inline-label">Actual throw:</span>
           <span class="score-inline-val" id="scoreVal">–</span>
         </div>
       </div>
@@ -136,10 +174,10 @@
       <div class="side-right">
         <button class="esc">esc</button>
         <div style="font-size:13px; margin-top:6px;">Player:</div>
-        <div class="player-name">XXX</div>
-        <div class="sub">XXX (96)</div>
-        <div class="sub">XXX (93)</div>
-        <div class="sub">XXX (90)</div>
+        <div class="player-name" id="playerRemaining">501</div>
+        <div class="sub" id="visit1">–</div>
+        <div class="sub" id="visit2">–</div>
+        <div class="sub" id="visit3">–</div>
       </div>
     </div>
 
@@ -150,6 +188,11 @@
         REM
       </button>
       <svg id="scorer" viewBox="0 0 600 790" aria-label="radial score selector"></svg>
+    </div>
+
+    <!-- ===== visit history + undo ===== -->
+    <div class="history-strip" id="histStrip">
+      <button class="undo-btn" id="undoBtn" disabled>↩</button>
     </div>
 
     <!-- ===== footer ===== -->
@@ -216,10 +259,12 @@
 
   // --- live interaction state ---
   const STATE = {
-    activeRange: null,   // index 0..8 of the range whose values fill the ring
+    activeRange: null,   // index 0..9 of the range whose values fill the ring
     dragging: false,
     previewIdx: null,    // ring segment under the finger (0..19) or null
-    lastScore: null,     // last committed score (Phase 2: just displayed/logged)
+    lastScore: null,
+    remaining: 501,      // running 501 countdown
+    visits: [],          // { score, bust, after } — full visit log
   };
 
   // =========================================================================
@@ -390,12 +435,13 @@
       svg.appendChild(t);
     }
 
-    // 6) score readout now lives in the box ABOVE the dial (centre stays empty)
-    let scoreTxt = "–";
-    if (STATE.dragging) {
-      const v = (STATE.previewIdx != null) ? segVals[STATE.previewIdx] : null;
-      scoreTxt = (v != null) ? String(v) : "–";
-    } else if (STATE.lastScore != null) scoreTxt = String(STATE.lastScore);
+    // 6) centre "Score:" shows last committed throw; previews current cell while dragging
+    let scoreTxt = STATE.lastScore != null ? String(STATE.lastScore) : "–";
+    if (STATE.dragging && STATE.previewIdx != null) {
+      const v = segVals[STATE.previewIdx];
+      if (v != null) scoreTxt = String(v);
+    }
+    scoreEl.style.color = "";
     scoreEl.textContent = scoreTxt;
   }
 
@@ -423,13 +469,20 @@
     if (!STATE.dragging) return;
     const segVals = buildSegmentValues(rangeValues(STATE.activeRange), RANGES[STATE.activeRange]);
     const committed = (STATE.previewIdx != null) ? segVals[STATE.previewIdx] : null;
+
     if (committed != null) {
+      const newRem = STATE.remaining - committed;
+      const bust   = newRem < 0;
+
+      if (!bust) STATE.remaining = newRem;
+      STATE.visits.push({ score: committed, bust, after: STATE.remaining });
       STATE.lastScore = committed;
-      console.log("COMMIT score:", STATE.lastScore);
-      if (navigator.vibrate) navigator.vibrate(15);   // haptic on commit (Android; iOS ignores)
-    } else {
-      console.log("CANCEL (released in dead zone or empty segment)");
+
+      if (navigator.vibrate) navigator.vibrate(bust ? [20,30,20] : 15);
+      updateHistory();
+      if (!bust && STATE.remaining === 0) handleWin();
     }
+
     STATE.dragging = false;
     STATE.previewIdx = null;
     try { svg.releasePointerCapture(e.pointerId); } catch {}
@@ -439,6 +492,67 @@
   svg.addEventListener("pointercancel", endDrag);
   // stop iOS long-press from popping a callout / cancelling the drag
   svg.addEventListener("contextmenu", (e) => e.preventDefault());
+
+  // ========================= HISTORY / UNDO / WIN ============================
+  const histStrip = document.getElementById("histStrip");
+  const undoBtn   = document.getElementById("undoBtn");
+
+  const playerRemainingEl = document.getElementById("playerRemaining");
+  const visitEls = [1,2,3].map(n => document.getElementById("visit" + n));
+
+  function updateHistory() {
+    // Remaining score in the magenta player-name slot
+    playerRemainingEl.textContent = String(STATE.remaining);
+
+    // Last 3 visits in the sub rows (most recent first), format: "score (3)" or "BUST"
+    const last3 = STATE.visits.slice(-3).reverse();
+    visitEls.forEach((el, i) => {
+      const v = last3[i];
+      if (!v) { el.textContent = "–"; el.style.color = ""; return; }
+      el.textContent = v.bust ? `✗ ${v.score} (BUST)` : `${v.score} (3)`;
+      el.style.color = v.bust ? "#e63946" : "";
+    });
+
+    // Bottom history chips
+    [...histStrip.children].forEach(c => { if (c !== undoBtn) c.remove(); });
+    STATE.visits.slice(-5).reverse().forEach(v => {
+      const chip = document.createElement("div");
+      chip.className = "hist-chip" + (v.bust ? " bust" : "");
+      chip.innerHTML =
+        `<div class="hist-chip__score">${v.bust ? "✗ " : ""}${v.score}</div>` +
+        `<div class="hist-chip__rem">${v.bust ? "BUST" : v.after}</div>`;
+      histStrip.appendChild(chip);
+    });
+
+    undoBtn.disabled = STATE.visits.length === 0;
+  }
+
+  undoBtn.addEventListener("click", () => {
+    if (STATE.visits.length === 0) return;
+    const last = STATE.visits.pop();
+    if (!last.bust) STATE.remaining += last.score;
+    updateHistory();
+    render();
+  });
+
+  function handleWin() {
+    const overlay = document.createElement("div");
+    overlay.className = "win-overlay";
+    overlay.innerHTML = `
+      <div class="win-card">
+        <h2>🎯 Checkout!</h2>
+        <p>You finished 501 in ${STATE.visits.length} visit${STATE.visits.length !== 1 ? "s" : ""}.</p>
+        <button id="winClose">Play again</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector("#winClose").addEventListener("click", () => {
+      STATE.remaining = 501;
+      STATE.visits = [];
+      overlay.remove();
+      updateHistory();
+      render();
+    });
+  }
 
   render();
 
