@@ -39,7 +39,7 @@
     }
 
     /* a player panel: history column + main (remaining + actual throw) */
-    .panel { display: flex; gap: 13px; }
+    .panel { display: flex; gap: 6px; }
     .panel.opp    { --c: #9a9a9a; justify-content: flex-start; }
     .panel.player { --c: var(--pink); justify-content: flex-end; }
 
@@ -71,15 +71,15 @@
     .hist-box.selected, .actual-box.selected { background: var(--c); color: #fff; }
     .actual-box.selected .val { color: #fff; }
 
-    .main-col { display: flex; flex-direction: column; gap: 3px; width: 74px; margin-top: 20px; }
+    .main-col { display: flex; flex-direction: column; gap: 3px; width: 69px; margin-top: 20px; }
     .big-rem {
       border: 2px solid var(--c); border-radius: 9px; padding: 8px 6px;
-      width: 74px; box-sizing: border-box;
+      width: 69px; box-sizing: border-box;
       font-size: 34px; font-weight: 800; color: var(--c); text-align: center; line-height: 1.1;
     }
     .actual-box {
       position: relative; border: 2px solid var(--c); border-radius: 9px; padding: 3px 6px;
-      width: 74px; box-sizing: border-box;
+      width: 69px; box-sizing: border-box;
       color: var(--c); text-align: center; line-height: 1;
     }
     .actual-box .val { font-size: 25px; font-weight: 800; }
