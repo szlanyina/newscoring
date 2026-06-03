@@ -461,7 +461,7 @@
     }
     if (STATE.activeRange != null) {
       const home = bubbleCenter(STATE.activeRange);
-      const p = (STATE.dragging && STATE.dragPos) ? STATE.dragPos : home;
+      const p = STATE.dragPos || home;   // held / settling → drop pos; else home
       drawBubble(STATE.activeRange, p);
     }
 
@@ -481,6 +481,7 @@
     const b = bubbleAt(p);
     if (b == null) return;            // only a range bubble starts a throw
     e.preventDefault();
+    if (settleTimer) { clearTimeout(settleTimer); settleTimer = null; }  // cancel pending snap-home
     try { svg.setPointerCapture(e.pointerId); } catch {}
     STATE.activeRange = b;
     STATE.dragging = true;
@@ -496,6 +497,8 @@
     STATE.previewIdx = segmentAt(STATE.dragPos);
     render();                         // re-render every move so the bubble tracks
   });
+
+  let settleTimer = null;             // pending "snap bubble home" timeout
 
   function endDrag(e) {
     if (!STATE.dragging) return;
@@ -517,8 +520,19 @@
 
     STATE.dragging = false;
     STATE.previewIdx = null;
-    STATE.dragPos = null;             // bubble snaps back home
     try { svg.releasePointerCapture(e.pointerId); } catch {}
+
+    // Dropped on a scoring cell → let the bubble rest there 500ms, then snap
+    // home. Dropped on a non-scoring area → snap home immediately.
+    if (committed != null) {
+      settleTimer = setTimeout(() => {
+        settleTimer = null;
+        STATE.dragPos = null;
+        render();
+      }, 500);
+    } else {
+      STATE.dragPos = null;
+    }
     render();
   }
   svg.addEventListener("pointerup", endDrag);
