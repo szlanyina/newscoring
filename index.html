@@ -280,33 +280,14 @@
   }
 
   // Map a flat sorted vals array onto the 20 ring segments.
-  // Default: lower half → left arc (i=10..19, bottom→top),
-  //          upper half → right arc (i=9..0,   bottom→top).
-  // Special cases driven by rangeStr override the split.
+  // All ranges: lower half → bottom arc left→right, upper half → upper arc left→right.
   function buildSegmentValues(vals, rangeStr) {
-    const result = new Array(T.segCount).fill(null);
-
-    if (rangeStr === "0-9") {
-      // All 10 values on the left arc only
-      for (let j = 0; j < Math.min(vals.length, 10); j++)
-        result[10 + j] = vals[j];
-      return result;
-    }
-
-    if (rangeStr === "170-180") {
-      // 170-179 on the left arc, 180 alone on the right at i=9 (near bottom-right)
-      for (let j = 0; j < 10; j++) result[10 + j] = vals[j];
-      result[9] = vals[10];
-      return result;
-    }
-
-    // Default even split
+    const result    = new Array(T.segCount).fill(null);
+    const bottomSegs = [14,13,12,11,10,9,8,7,6,5];
+    const upperSegs  = [15,16,17,18,19,0,1,2,3,4];
     const half = Math.floor(vals.length / 2);
-    for (let j = 0; j < Math.min(half, 10); j++)
-      result[10 + j] = vals[j];
-    const rightLen = vals.length - half;
-    for (let j = 0; j < Math.min(rightLen, 10); j++)
-      result[9 - j] = vals[half + j];
+    bottomSegs.forEach((seg, j) => { if (j < half)               result[seg] = vals[j]; });
+    upperSegs .forEach((seg, j) => { if (j < vals.length - half)  result[seg] = vals[half + j]; });
     return result;
   }
 
