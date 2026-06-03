@@ -240,6 +240,7 @@
     lastScore: null,
     remaining: 501,      // running 501 countdown
     visits: [],          // { score, bust, after } — full visit log
+    dragPos: null,       // live pointer pos — the held bubble follows it
   };
 
   // =========================================================================
@@ -383,6 +384,23 @@
     return null;                                    // inner disc / outside = no value
   }
 
+  // draw one range bubble (circle + two-decade label) at a given centre
+  function drawBubble(i, p) {
+    svg.appendChild(el("circle", {
+      cx: p.x, cy: p.y, r: T.bubbleR,
+      class: i === STATE.activeRange ? "bubble bubble-active" : "bubble"
+    }));
+    const lo = Number(RANGES[i].split("-")[0]);
+    const t  = el("text", { x: p.x, y: p.y, class: "bubble-text" });
+    if (RANGES[i] === "0-9") {
+      t.appendChild(el("tspan", { x: p.x, dy: "0" }, "0"));
+    } else {
+      t.appendChild(el("tspan", { x: p.x, dy: "-0.35em" }, String(lo)));
+      t.appendChild(el("tspan", { x: p.x, dy: "1.1em" },  String(lo + 10)));
+    }
+    svg.appendChild(t);
+  }
+
   // =========================== RENDER =====================================
   function render() {
     svg.innerHTML = "";
@@ -435,23 +453,16 @@
     }
 
     // 5) range bubbles
+    // Non-active bubbles first, then the active one on top — at the live pointer
+    // position while dragging, so the held bubble follows the finger.
     for (let i = 0; i < T.bubbleCount; i++) {
-      const p = bubbleCenter(i);
-      svg.appendChild(el("circle", {
-        cx: p.x, cy: p.y, r: T.bubbleR,
-        class: i === STATE.activeRange ? "bubble bubble-active" : "bubble"
-      }));
-      const lo = Number(RANGES[i].split("-")[0]);
-      const t  = el("text", { x: p.x, y: p.y, class: "bubble-text" });
-      if (RANGES[i] === "0-9") {
-        // Rarely-used bucket — single "0" label
-        t.appendChild(el("tspan", { x: p.x, dy: "0" }, "0"));
-      } else {
-        // Show the two decades covered by this bucket, e.g. "130" / "140"
-        t.appendChild(el("tspan", { x: p.x, dy: "-0.35em" }, String(lo)));
-        t.appendChild(el("tspan", { x: p.x, dy: "1.1em" },  String(lo + 10)));
-      }
-      svg.appendChild(t);
+      if (i === STATE.activeRange) continue;
+      drawBubble(i, bubbleCenter(i));
+    }
+    if (STATE.activeRange != null) {
+      const home = bubbleCenter(STATE.activeRange);
+      const p = (STATE.dragging && STATE.dragPos) ? STATE.dragPos : home;
+      drawBubble(STATE.activeRange, p);
     }
 
     // 6) centre "Score:" shows last committed throw; previews current cell while dragging
@@ -474,14 +485,16 @@
     STATE.activeRange = b;
     STATE.dragging = true;
     STATE.previewIdx = null;
+    STATE.dragPos = p;                // bubble jumps to the finger
     render();
   });
 
   svg.addEventListener("pointermove", (e) => {
     if (!STATE.dragging) return;
     e.preventDefault();
-    const idx = segmentAt(toLocal(e));
-    if (idx !== STATE.previewIdx) { STATE.previewIdx = idx; render(); }
+    STATE.dragPos = toLocal(e);       // held bubble follows the finger
+    STATE.previewIdx = segmentAt(STATE.dragPos);
+    render();                         // re-render every move so the bubble tracks
   });
 
   function endDrag(e) {
@@ -504,6 +517,7 @@
 
     STATE.dragging = false;
     STATE.previewIdx = null;
+    STATE.dragPos = null;             // bubble snaps back home
     try { svg.releasePointerCapture(e.pointerId); } catch {}
     render();
   }
