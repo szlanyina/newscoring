@@ -344,8 +344,8 @@
     const upperSegs  = [15,16,17,18,19,0,1,2,3,4];
 
     if (rangeStr === "0-9") {
-      // All 10 on the upper arc only
-      upperSegs.forEach((seg, j) => { result[seg] = vals[j]; });
+      // All 10 on the bottom arc only
+      bottomSegs.forEach((seg, j) => { result[seg] = vals[j]; });
       return result;
     }
 
