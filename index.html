@@ -51,6 +51,10 @@
     }
     .hist-box .darts { position: absolute; top: -3px; right: 3px; font-size: 10px; font-weight: 600; }
     .hist-box.empty { border-color: #ccc; }
+    .hist-box[data-vi], .actual-box[data-vi] { cursor: pointer; }
+    /* selected-for-edit highlight */
+    .hist-box.selected, .actual-box.selected { background: var(--c); color: #fff; }
+    .actual-box.selected .val, .actual-box.selected .darts { color: #fff; }
 
     .main-col { display: flex; flex-direction: column; gap: 5px; }
     .big-rem {
@@ -174,7 +178,7 @@
       <div class="panel player">
         <div class="main-col">
           <div class="big-rem" id="playerRemaining">501</div>
-          <div class="actual-box">
+          <div class="actual-box" id="actualBox">
             <span class="val" id="scoreVal">–</span>
             <span class="darts" id="actualDarts"></span>
           </div>
@@ -254,16 +258,19 @@
   const SELECT_THRESHOLD = 0.80;
   const GRAB_SLOP = 1.35;   // bubble tap forgiveness multiplier
 
+  const START = 501;     // leg starting score
+
   // --- live interaction state ---
   const STATE = {
     activeRange: null,   // index 0..9 of the range whose values fill the ring
     dragging: false,
     previewIdx: null,    // ring segment under the finger (0..19) or null
     lastScore: null,
-    remaining: 501,      // running 501 countdown
+    remaining: START,    // running 501 countdown
     visits: [],          // { score, bust, after } — full visit log
     dragPos: null,       // live pointer pos — the held bubble follows it
     settleScore: null,   // committed score shown on the bubble during its 500ms linger
+    editIndex: null,     // visit index selected for overwrite (click a throw box)
   };
 
   // =========================================================================
@@ -543,16 +550,22 @@
     const committed = (STATE.previewIdx != null) ? segVals[STATE.previewIdx] : null;
 
     if (committed != null) {
-      const newRem = STATE.remaining - committed;
-      const bust   = newRem < 0;
-
-      if (!bust) STATE.remaining = newRem;
-      STATE.visits.push({ score: committed, bust, after: STATE.remaining });
-      STATE.lastScore = committed;
-
-      if (navigator.vibrate) navigator.vibrate(bust ? [20,30,20] : 15);
+      if (STATE.editIndex != null && STATE.editIndex < STATE.visits.length) {
+        // Overwrite the selected throw, then replay the leg from the start.
+        STATE.visits[STATE.editIndex].score = committed;
+        STATE.editIndex = null;
+        recompute();
+        if (navigator.vibrate) navigator.vibrate(15);
+      } else {
+        const newRem = STATE.remaining - committed;
+        const bust   = newRem < 0;
+        if (!bust) STATE.remaining = newRem;
+        STATE.visits.push({ score: committed, bust, after: STATE.remaining });
+        STATE.lastScore = committed;
+        if (navigator.vibrate) navigator.vibrate(bust ? [20,30,20] : 15);
+      }
       updateHistory();
-      if (!bust && STATE.remaining === 0) handleWin();
+      if (STATE.remaining === 0) handleWin();
     }
 
     STATE.dragging = false;
@@ -586,6 +599,21 @@
   const playerRemainingEl = document.getElementById("playerRemaining");
   const actualDartsEl     = document.getElementById("actualDarts");
   const histColEl         = document.getElementById("histCol");
+  const actualBoxEl       = document.getElementById("actualBox");
+
+  // Replay all visit scores from START, refreshing each visit's bust/after and
+  // the running remaining (used after an in-place edit).
+  function recompute() {
+    let rem = START;
+    STATE.visits.forEach(v => {
+      const next = rem - v.score;
+      v.bust = next < 0;
+      if (!v.bust) rem = next;
+      v.after = rem;
+    });
+    STATE.remaining = rem;
+    STATE.lastScore = STATE.visits.length ? STATE.visits[STATE.visits.length - 1].score : null;
+  }
 
   function updateHistory() {
     const n = STATE.visits.length;
@@ -593,15 +621,18 @@
     // Big number = remaining score
     playerRemainingEl.textContent = String(STATE.remaining);
 
-    // Actual-throw darts = total darts thrown after the latest visit (3 per visit)
+    // Actual-throw box = latest visit (index n-1): darts + edit wiring
     actualDartsEl.textContent = n ? `(${n * 3})` : "";
+    if (n) { actualBoxEl.dataset.vi = n - 1; } else { delete actualBoxEl.dataset.vi; }
+    actualBoxEl.classList.toggle("selected", STATE.editIndex === n - 1 && n > 0);
     // (the throw value itself is written by render() so it also previews on drag)
 
     // History column = previous visits (newest at top), 5 slots, with cumulative darts
     const slots = [];
     for (let k = n - 2; k >= 0 && slots.length < 5; k--) {
       const v = STATE.visits[k];
-      slots.push(`<div class="hist-box">${v.bust ? "✗" : v.score}<span class="darts">(${(k + 1) * 3})</span></div>`);
+      const sel = STATE.editIndex === k ? " selected" : "";
+      slots.push(`<div class="hist-box${sel}" data-vi="${k}">${v.bust ? "✗" : v.score}<span class="darts">(${(k + 1) * 3})</span></div>`);
     }
     while (slots.length < 5) slots.push(`<div class="hist-box empty"></div>`);
     histColEl.innerHTML = slots.join("");
@@ -611,11 +642,21 @@
   }
   updateHistory();   // initial empty history
 
+  // Click a throw box → toggle it as the edit target; the next dial commit
+  // overwrites that throw instead of adding a new one.
+  document.querySelector(".panel.player").addEventListener("click", (e) => {
+    const box = e.target.closest("[data-vi]");
+    if (!box) return;
+    const vi = Number(box.dataset.vi);
+    STATE.editIndex = (STATE.editIndex === vi) ? null : vi;
+    updateHistory();
+  });
+
   undoBtn.addEventListener("click", () => {
     if (STATE.visits.length === 0) return;
-    const last = STATE.visits.pop();
-    if (!last.bust) STATE.remaining += last.score;
-    STATE.lastScore = STATE.visits.length ? STATE.visits[STATE.visits.length - 1].score : null;
+    STATE.visits.pop();
+    STATE.editIndex = null;
+    recompute();
     updateHistory();
     render();
   });
@@ -631,8 +672,10 @@
       </div>`;
     document.body.appendChild(overlay);
     overlay.querySelector("#winClose").addEventListener("click", () => {
-      STATE.remaining = 501;
+      STATE.remaining = START;
       STATE.visits = [];
+      STATE.editIndex = null;
+      STATE.lastScore = null;
       overlay.remove();
       updateHistory();
       render();
