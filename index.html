@@ -441,21 +441,21 @@
       fill: "#fff", stroke: "none"
     }));
 
-    // 4) exact-value numbers — only while a bubble is being dragged.
-    //    Selected cell is filled green, so its number turns white.
+    // 4) exact-value numbers — only while a bubble is being dragged. The
+    //    selected cell's number is omitted; it is shown on the bubble instead.
     for (let i = 0; STATE.dragging && i < T.segCount; i++) {
       if (segVals[i] == null) continue;
+      if (STATE.previewIdx === i) continue;   // number moves onto the bubble
       // Cell centre = average of its four boundary corners.
       const c = cellCorners(i);
       const p = {
         x: (c[0].x + c[1].x + c[2].x + c[3].x) / 4,
         y: (c[0].y + c[1].y + c[2].y + c[3].y) / 4,
       };
-      const selected = STATE.dragging && STATE.previewIdx === i;
       svg.appendChild(el("text", {
         x: p.x, y: p.y,
         'text-anchor': 'middle', dy: '0.35em',
-        class: selected ? "seg-num seg-num-active" : "seg-num"
+        class: "seg-num"
       }, segVals[i]));
     }
 
@@ -469,8 +469,11 @@
     if (STATE.activeRange != null) {
       const home = bubbleCenter(STATE.activeRange);
       const p = STATE.dragPos || home;   // held / settling → drop pos; else home
-      // While settling on a scored drop, show the recorded score instead of the range.
-      const override = STATE.settleScore;
+      // While over a cell, show that cell's number on the bubble; while settling
+      // on a scored drop, show the recorded score; otherwise the range label.
+      let override = null;
+      if (STATE.dragging && STATE.previewIdx != null) override = segVals[STATE.previewIdx];
+      else if (STATE.settleScore != null) override = STATE.settleScore;
       drawBubble(STATE.activeRange, p, override);
     }
 
