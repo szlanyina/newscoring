@@ -71,15 +71,17 @@
     .hist-box.selected, .actual-box.selected { background: var(--c); color: #fff; }
     .actual-box.selected .val { color: #fff; }
 
-    .main-col { display: flex; flex-direction: column; gap: 3px; width: 69px; margin-top: 20px; }
+    .main-col { display: flex; flex-direction: column; gap: 3px; width: 71px; margin-top: 20px; }
     .big-rem {
       border: 2px solid var(--c); border-radius: 9px; padding: 8px 6px;
-      width: 69px; box-sizing: border-box;
+      width: 71px; box-sizing: border-box;
+      display: flex; align-items: center; justify-content: center;
       font-size: 34px; font-weight: 800; color: var(--c); text-align: center; line-height: 1.1;
     }
     .actual-box {
       position: relative; border: 2px solid var(--c); border-radius: 9px; padding: 3px 6px;
-      width: 69px; box-sizing: border-box;
+      width: 71px; box-sizing: border-box;
+      display: flex; align-items: center; justify-content: center;
       color: var(--c); text-align: center; line-height: 1;
     }
     .actual-box .val { font-size: 25px; font-weight: 800; }
@@ -162,17 +164,21 @@
     <!-- ===== header scoreboard ===== -->
     <div class="scoreboard">
 
-      <!-- opponent (left, gray) — static placeholder in solo prototype -->
+      <!-- opponent (left, gray) — structurally identical to the player side,
+           with its own ids/hooks for later wiring (static values for now) -->
       <div class="panel opp">
-        <div class="hist-col">
+        <div class="hist-col" id="oppHistCol">
           <div class="hist-box">60<span class="darts">12</span></div>
           <div class="hist-box">100<span class="darts">9</span></div>
           <div class="hist-box">60<span class="darts">6</span></div>
           <div class="hist-box">40<span class="darts">3</span></div>
         </div>
         <div class="main-col">
-          <div class="big-rem">141</div>
-          <div class="actual-box"><span class="val">100</span><span class="darts">15</span></div>
+          <div class="big-rem" id="oppRemaining">141</div>
+          <div class="actual-box" id="oppActualBox">
+            <span class="val" id="oppActualVal">100</span>
+            <span class="darts" id="oppActualDarts">15</span>
+          </div>
         </div>
       </div>
 
