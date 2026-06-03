@@ -185,13 +185,13 @@
 
     // outer number ring (ellipse) — measured, then +20% wider / +10% taller
     ringOuterRx: 298, ringOuterRy: 384,   // outer edge of the blue band
-    ringInnerRx: 157, ringInnerRy: 266,   // inner edge of the blue band (= green disc edge)
+    ringInnerRx: 167, ringInnerRy: 256,   // inner edge of the blue band (= green disc edge)
     numRx: 227, numRy: 325,               // where the 20 numbers sit (mid-band)
     segCount: 20,                          // exact values shown per range
     startAngleDeg: -81,                    // first segment centre 9° right of top → segment boundary on vertical
 
     // green inner disc — narrow + tall (big blue band), per the picture
-    discRx: 157, discRy: 266,
+    discRx: 167, discRy: 256,
     bubbleR: 48,                           // bubble radius
     bubbleCount: 10,
   };
@@ -218,14 +218,14 @@
   const BUBBLE_POS = [
     { x: 300, y: 450 },  // 0-9     (centre)
     { x: 300, y: 332 },  // 10-29
-    { x: 384, y: 261 },  // 30-49
-    { x: 409, y: 395 },  // 50-69
-    { x: 386, y: 527 },  // 70-89
-    { x: 300, y: 613 },  // 90-109  (bottom of disc, centre)
-    { x: 300, y: 177 },  // 110-129 (top of disc, centre)
-    { x: 214, y: 527 },  // 130-149
-    { x: 191, y: 395 },  // 150-169
-    { x: 216, y: 261 },  // 170-180
+    { x: 389, y: 264 },  // 30-49
+    { x: 419, y: 395 },  // 50-69
+    { x: 391, y: 524 },  // 70-89
+    { x: 300, y: 603 },  // 90-109  (bottom of disc, centre)
+    { x: 300, y: 187 },  // 110-129 (top of disc, centre)
+    { x: 209, y: 524 },  // 130-149
+    { x: 181, y: 395 },  // 150-169
+    { x: 211, y: 264 },  // 170-180
   ];
 
   // How far out (normalized to the number ring = 1.0) the finger must be to
@@ -280,29 +280,29 @@
   }
 
   // Map a flat sorted vals array onto the 20 ring segments.
-  // Lower values → bottom arc (left→right), higher values → upper arc (left→right).
+  // Lower values → upper arc (left→right), higher values → bottom arc (left→right).
   function buildSegmentValues(vals, rangeStr) {
     const result     = new Array(T.segCount).fill(null);
     const bottomSegs = [14,13,12,11,10,9,8,7,6,5];
     const upperSegs  = [15,16,17,18,19,0,1,2,3,4];
 
     if (rangeStr === "0-9") {
-      // All 10 on the bottom arc only
-      bottomSegs.forEach((seg, j) => { result[seg] = vals[j]; });
+      // All 10 on the upper arc only
+      upperSegs.forEach((seg, j) => { result[seg] = vals[j]; });
       return result;
     }
 
     if (rangeStr === "170-180") {
-      // 170-179 fill all 10 bottom slots; 180 sits at the first upper slot
-      bottomSegs.forEach((seg, j) => { result[seg] = vals[j]; });
-      result[upperSegs[0]] = vals[10];
+      // 170-179 fill all 10 upper slots; 180 sits at the first bottom slot
+      upperSegs.forEach((seg, j) => { result[seg] = vals[j]; });
+      result[bottomSegs[0]] = vals[10];
       return result;
     }
 
-    // Default: lower half on bottom, upper half on upper
+    // Default: lower half on upper arc, higher half on bottom arc
     const half = Math.floor(vals.length / 2);
-    bottomSegs.forEach((seg, j) => { if (j < half)              result[seg] = vals[j]; });
-    upperSegs .forEach((seg, j) => { if (j < vals.length - half) result[seg] = vals[half + j]; });
+    upperSegs .forEach((seg, j) => { if (j < half)              result[seg] = vals[j]; });
+    bottomSegs.forEach((seg, j) => { if (j < vals.length - half) result[seg] = vals[half + j]; });
     return result;
   }
 
