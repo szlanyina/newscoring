@@ -65,6 +65,7 @@
     }
     .hist-col::-webkit-scrollbar { display: none; }
     .panel.player .hist-col { padding: 8px 0 2px 7px; }
+    .panel.player .hist-box .darts { right: auto; left: -5px; }
     .hist-box { flex: 0 0 auto; }
     .hist-box {
       position: relative; border: 2px solid color-mix(in srgb, var(--c) 50%, transparent); border-radius: 7px;
@@ -386,6 +387,7 @@
     undoStack: [],   // { type, player, ... }
     redoStack: [],
     remMode: false,
+    settling: false,  // true during the 700ms snap-home; blocks new drags
     // right player
     right: { remaining: START, visits: [], lastScore: null, editIndex: null },
   };
@@ -671,11 +673,12 @@
 
   // =========================== GESTURE ====================================
   svg.addEventListener("pointerdown", (e) => {
+    if (STATE.settling) return;       // locked until bubble returns and player switches
     const p = toLocal(e);
     const b = bubbleAt(p);
     if (b == null) return;            // only a range bubble starts a throw
     e.preventDefault();
-    if (settleTimer) { clearTimeout(settleTimer); settleTimer = null; }  // cancel pending snap-home
+    if (settleTimer) { clearTimeout(settleTimer); settleTimer = null; }
     STATE.settleScore = null;
     try { svg.setPointerCapture(e.pointerId); } catch {}
     STATE.activeRange = b;
@@ -744,7 +747,8 @@
         if (P.remaining === 0) {
           handleLegWin(pl);
         } else if (!isEdit) {
-          pendingSwitch = true;   // switch colour only when bubble returns home
+          pendingSwitch = true;
+          STATE.settling = true;   // lock the dial until bubble returns home
         }
       }
     }
@@ -762,6 +766,7 @@
         if (pendingSwitch) {
           STATE.currentPlayer = STATE.currentPlayer === "left" ? "right" : "left";
         }
+        STATE.settling = false;
         render();
       }, 700);
     } else {
