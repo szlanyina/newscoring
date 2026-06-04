@@ -95,10 +95,11 @@
     }
     .actual-box {
       position: relative; border: 2px solid var(--c); border-radius: 9px; padding: 3px 6px;
-      width: 71px; min-height: 35px; box-sizing: border-box;
+      width: 71px; min-height: 35px; box-sizing: border-box; background: #444444;
       display: flex; align-items: center; justify-content: center;
-      color: var(--c); text-align: center; line-height: 1;
+      color: #d8d8d8; text-align: center; line-height: 1;
     }
+    .actual-box:not([data-vi]) { background: none; }   /* empty last throw stays transparent */
     .actual-box .val { font-size: 21px; font-weight: 800; }
 
     /* middle: sets / legs */
