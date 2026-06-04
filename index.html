@@ -624,11 +624,11 @@
     if (labelOverride != null) {
       t.appendChild(el("tspan", { x: p.x, dy: "0.05em" }, String(labelOverride)));
     } else if (RANGES[i] === "0-9") {
-      t.appendChild(el("tspan", { x: p.x, dy: "1.1em", fill: "#999999" }, "_"));
+      t.appendChild(el("tspan", { x: p.x, dy: "1.1em", fill: "#ababab" }, "_"));
     } else {
       const lo = Number(RANGES[i].split("-")[0]);
       t.appendChild(el("tspan", { x: p.x, dy: "-1.05em" }, decade(lo)));
-      t.appendChild(el("tspan", { x: p.x, dy: "2.1em", fill: "#999999" }, decade(lo + 10)));
+      t.appendChild(el("tspan", { x: p.x, dy: "2.1em", fill: "#ababab" }, decade(lo + 10)));
     }
     svg.appendChild(t);
   }
@@ -719,7 +719,7 @@
         x: p.x, y: p.y,
         'text-anchor': 'middle', dy: '0.35em',
         class: "seg-num", filter: "url(#tSh)",
-        fill: upperSet.has(i) ? "#fff" : "#999999"
+        fill: upperSet.has(i) ? "#fff" : "#ababab"
       }, segVals[i]));
     }
 
