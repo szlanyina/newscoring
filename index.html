@@ -71,7 +71,7 @@
     .hist-box {
       position: relative; border: 2px solid color-mix(in srgb, var(--c) 50%, transparent); border-radius: 7px;
       min-width: 52px; height: 28px; display: flex; align-items: center; justify-content: center;
-      font-size: 16px; font-weight: 700; color: #fff; background: #333333;
+      font-size: 16px; font-weight: 700; color: #fff; background: #222222;
     }
     .hist-box.empty { border-color: transparent; background: none; }
     @keyframes histSlideIn {
@@ -79,7 +79,7 @@
       to   { transform: translateY(0);     opacity: 1; }
     }
     .hist-box.new-entry { animation: histSlideIn 0.22s ease-out; }
-    .panel.player .actual-box:not([data-vi]) { border-color: #f4a8cd; background: none; }
+    .panel.player .actual-box:not([data-vi]) { border-color: #f4a8cd; }
     /* dart-count badge — small circle at the top-right corner */
     .darts {
       position: absolute; top: -7px; right: -5px;
@@ -96,13 +96,13 @@
     .main-col { display: flex; flex-direction: column; gap: 10px; width: 71px; margin-top: 20px; }
     .big-rem {
       border: 2px solid var(--c); border-radius: 9px; padding: 8px 6px;
-      width: 71px; box-sizing: border-box; background: #333333;
+      width: 71px; box-sizing: border-box; background: #222222;
       display: flex; align-items: center; justify-content: center;
       font-size: 29px; font-weight: 800; color: #fff; text-align: center; line-height: 1.1;
     }
     .actual-box {
       position: relative; border: 2px solid var(--c); border-radius: 9px; padding: 3px 6px;
-      width: 71px; min-height: 35px; box-sizing: border-box; background: #333333;
+      width: 71px; min-height: 35px; box-sizing: border-box; background: #222222;
       display: flex; align-items: center; justify-content: center;
       color: #fff; text-align: center; line-height: 1;
     }
@@ -603,7 +603,7 @@
       const isSel = STATE.dragging && STATE.previewIdx === i && segVals[i] != null;
       svg.appendChild(el("path", {
         d,
-        fill: isSel ? (STATE.currentPlayer === "right" ? "#1a5f8a" : "var(--green-bub)") : (upperSet.has(i) ? "#444444" : "#333333"),
+        fill: isSel ? (STATE.currentPlayer === "right" ? "#1a5f8a" : "var(--green-bub)") : (upperSet.has(i) ? "#444444" : "#222222"),
         "fill-opacity": isSel ? 1 : 0.7,   // 30% transparent (selected stays solid)
         stroke: "#000", "stroke-width": 3, "stroke-linejoin": "round"
       }));
