@@ -596,9 +596,25 @@
   // draw one range bubble at a given centre. labelOverride (e.g. a recorded
   // score) replaces the usual two-decade label when provided.
   function drawBubble(i, p, labelOverride) {
+    const isRight = STATE.currentPlayer === "right";
+    // main disc with radial gradient + drop shadow
     svg.appendChild(el("circle", {
       cx: p.x, cy: p.y, r: T.bubbleR,
-      class: STATE.currentPlayer === "right" ? "bubble-right" : "bubble"
+      fill: isRight ? "url(#bgR)" : "url(#bgL)",
+      stroke: isRight ? "#0a2e48" : "#6a0c32", "stroke-width": 2,
+      filter: "url(#bSh)"
+    }));
+    // inner bevel ring
+    svg.appendChild(el("circle", {
+      cx: p.x, cy: p.y, r: T.bubbleR - 5,
+      fill: "none",
+      stroke: "rgba(255,255,255,0.12)", "stroke-width": "3"
+    }));
+    // specular highlight
+    svg.appendChild(el("ellipse", {
+      cx: p.x - T.bubbleR * 0.18, cy: p.y - T.bubbleR * 0.24,
+      rx: T.bubbleR * 0.30, ry: T.bubbleR * 0.18,
+      fill: "rgba(255,255,255,0.25)"
     }));
     // Only the settling bubble (with its score override) shows a label while a
     // drag is in progress or a drop is still settling; everything else is blank.
@@ -621,6 +637,25 @@
   // =========================== RENDER =====================================
   function render() {
     svg.innerHTML = "";
+
+    // ---- bubble gradient defs (rebuilt each render since innerHTML is wiped) ----
+    const defs = el("defs", {});
+    const mkGrad = (id, hi, mid, dark) => {
+      const g = el("radialGradient", { id, cx: "38%", cy: "32%", r: "65%",
+                                       gradientUnits: "objectBoundingBox" });
+      [[0, hi], [50, mid], [100, dark]].forEach(([p, col]) => {
+        g.appendChild(el("stop", { offset: `${p}%`, "stop-color": col }));
+      });
+      return g;
+    };
+    defs.appendChild(mkGrad("bgL", "#f05090", "#c41f72", "#5a0828")); // pink
+    defs.appendChild(mkGrad("bgR", "#4db8e8", "#1a6fa8", "#081c30")); // blue
+    const filt = el("filter", { id: "bSh", x: "-30%", y: "-30%", width: "160%", height: "160%" });
+    filt.appendChild(el("feDropShadow", { dx: "0", dy: "4", stdDeviation: "5",
+                                          "flood-color": "#000", "flood-opacity": "0.55" }));
+    defs.appendChild(filt);
+    svg.appendChild(defs);
+
     const vals = rangeValues(STATE.activeRange);
     const segVals = buildSegmentValues(vals, RANGES[STATE.activeRange]);
 
