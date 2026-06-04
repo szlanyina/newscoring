@@ -509,11 +509,11 @@
     if (labelOverride != null) {
       t.appendChild(el("tspan", { x: p.x, dy: "0.05em" }, String(labelOverride)));
     } else if (RANGES[i] === "0-9") {
-      t.appendChild(el("tspan", { x: p.x, dy: "0.55em" }, "_"));
+      t.appendChild(el("tspan", { x: p.x, dy: "1.1em" }, "_"));
     } else {
       const lo = Number(RANGES[i].split("-")[0]);
-      t.appendChild(el("tspan", { x: p.x, dy: "-0.45em" }, decade(lo)));
-      t.appendChild(el("tspan", { x: p.x, dy: "1.0em" },  decade(lo + 10)));
+      t.appendChild(el("tspan", { x: p.x, dy: "-1.05em" }, decade(lo)));
+      t.appendChild(el("tspan", { x: p.x, dy: "2.1em" },  decade(lo + 10)));
     }
     svg.appendChild(t);
   }
@@ -586,7 +586,8 @@
 
     // 6) actual-throw box shows last committed throw; previews while dragging.
     //    In REM mode the dialed value is the remaining, so preview the resulting throw.
-    let scoreTxt = STATE.lastScore != null ? String(STATE.lastScore) : "";
+    const lastVisit = STATE.visits[STATE.visits.length - 1];
+    let scoreTxt = lastVisit ? (lastVisit.bust ? "✗" : String(lastVisit.score)) : "";
     if (STATE.dragging && STATE.previewIdx != null) {
       const v = segVals[STATE.previewIdx];
       if (v != null) {
