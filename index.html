@@ -403,6 +403,26 @@
     return [RING.inner[i], RING.inner[n], RING.outer[n], RING.outer[i]];
   }
 
+  // Cell path with each corner rounded by radius r (inner/outer edges stay
+  // elliptical arcs; the four corners get a short quadratic round).
+  function roundedCellPath(iL, iR, oR, oL, r) {
+    const towards = (a, b) => { const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1;
+      return { x: a.x + dx / l * r, y: a.y + dy / l * r }; };
+    const iLa = towards(iL, iR), iRa = towards(iR, iL);   // inner-arc trims
+    const iRl = towards(iR, oR), oRl = towards(oR, iR);   // right radial line trims
+    const oRa = towards(oR, oL), oLa = towards(oL, oR);   // outer-arc trims
+    const oLl = towards(oL, iL), iLl = towards(iL, oL);   // left/closing line trims
+    return `M ${iLa.x} ${iLa.y}`
+         + ` A ${T.ringInnerRx} ${T.ringInnerRy} 0 0 1 ${iRa.x} ${iRa.y}`
+         + ` Q ${iR.x} ${iR.y} ${iRl.x} ${iRl.y}`
+         + ` L ${oRl.x} ${oRl.y}`
+         + ` Q ${oR.x} ${oR.y} ${oRa.x} ${oRa.y}`
+         + ` A ${T.ringOuterRx} ${T.ringOuterRy} 0 0 0 ${oLa.x} ${oLa.y}`
+         + ` Q ${oL.x} ${oL.y} ${oLl.x} ${oLl.y}`
+         + ` L ${iLl.x} ${iLl.y}`
+         + ` Q ${iL.x} ${iL.y} ${iLa.x} ${iLa.y} Z`;
+  }
+
   // exact values for the active range, e.g. 40..59
   function rangeValues(idx) {
     if (idx == null) return [];
@@ -500,15 +520,12 @@
       const n = (i + 1) % T.segCount;
       const iL = RING.inner[i], iR = RING.inner[n];
       const oL = RING.outer[i], oR = RING.outer[n];
-      const d = `M ${iL.x} ${iL.y}`
-              + ` A ${T.ringInnerRx} ${T.ringInnerRy} 0 0 1 ${iR.x} ${iR.y}`
-              + ` L ${oR.x} ${oR.y}`
-              + ` A ${T.ringOuterRx} ${T.ringOuterRy} 0 0 0 ${oL.x} ${oL.y}`
-              + ` Z`;
+      const d = roundedCellPath(iL, iR, oR, oL, 6);
       const isSel = STATE.dragging && STATE.previewIdx === i && segVals[i] != null;
       svg.appendChild(el("path", {
         d,
         fill: isSel ? "var(--green-bub)" : (upperSet.has(i) ? "#6e6e6e" : "#444444"),
+        "fill-opacity": isSel ? 1 : 0.7,   // 30% transparent (selected stays solid)
         stroke: "#fff", "stroke-width": 3, "stroke-linejoin": "round"
       }));
     }
