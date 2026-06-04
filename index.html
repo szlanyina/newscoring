@@ -186,6 +186,55 @@
       border-radius: 14px; padding: 9px 28px; font-size: 17px; font-weight: 700;
       letter-spacing: 1px; cursor: pointer;
     }
+
+    /* ---------- menu dropdown ---------- */
+    .menu-dropdown {
+      position: absolute; top: 62px; left: 10px; z-index: 50;
+      background: #1e1e1e; border: 1px solid #444; border-radius: 12px;
+      overflow: hidden; min-width: 150px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+      display: none;
+    }
+    .menu-dropdown.open { display: block; }
+    .menu-item {
+      padding: 14px 20px; font-size: 15px; font-weight: 600; color: #fff;
+      cursor: pointer; border: none; background: none; width: 100%; text-align: left;
+      display: block;
+    }
+    .menu-item:active { background: #333; }
+    .menu-item + .menu-item { border-top: 1px solid #333; }
+    .menu-item.disabled { color: #555; cursor: default; pointer-events: none; }
+
+    /* ---------- new game dialog ---------- */
+    .ng-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
+    }
+    .ng-card {
+      background: #1e1e1e; border-radius: 20px; padding: 24px 26px;
+      width: min(320px, 90vw); color: #fff;
+    }
+    .ng-card h2 { margin: 0 0 20px; font-size: 1.2rem; text-align: center; font-weight: 800; }
+    .ng-section { margin-bottom: 14px; }
+    .ng-label { font-size: 11px; color: #aaa; font-weight: 700; margin-bottom: 6px;
+                text-transform: uppercase; letter-spacing: 0.06em; }
+    .ng-toggle { display: flex; border-radius: 10px; overflow: hidden; border: 1.5px solid #444; }
+    .ng-toggle button {
+      flex: 1; padding: 9px 6px; background: none; border: none; color: #aaa;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    .ng-toggle button.active { background: var(--pink); color: #fff; }
+    .ng-stepper { display: flex; align-items: center; gap: 10px; }
+    .ng-stepper button {
+      width: 34px; height: 34px; border-radius: 9px; border: none;
+      background: #333; color: #fff; font-size: 22px; font-weight: 700;
+      cursor: pointer; line-height: 1; display: flex; align-items: center; justify-content: center;
+    }
+    .ng-stepper span { flex: 1; text-align: center; font-size: 17px; font-weight: 700; }
+    .ng-start {
+      width: 100%; padding: 13px; margin-top: 10px; border: none; border-radius: 13px;
+      background: var(--pink); color: #fff; font-size: 16px; font-weight: 800; cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -209,14 +258,14 @@
 
       <!-- middle: sets / legs -->
       <div class="mid-col">
-        <div class="mid-title set-title">1 of 1 sets</div>
+        <div class="mid-title set-title" id="setTitle">1 of 1 sets</div>
         <div class="mid-boxes">
-          <div class="mid-box">11</div><div class="mid-box">11</div>
+          <div class="mid-box" id="playerSetsBox">0</div><div class="mid-box" id="oppSetsBox">0</div>
         </div>
         <div class="mid-divider"></div>
-        <div class="mid-title leg-title">23 of 29 legs</div>
+        <div class="mid-title leg-title" id="legTitle">1 of 3 legs</div>
         <div class="mid-boxes">
-          <div class="mid-box leg">11</div><div class="mid-box leg">12</div>
+          <div class="mid-box leg" id="playerLegsBox">0</div><div class="mid-box leg" id="oppLegsBox">0</div>
         </div>
       </div>
 
@@ -824,6 +873,145 @@
   }
 
   render();
+
+  // ========================= MENU ==========================================
+  const menuBtn = document.getElementById("menuBtn");
+
+  const dropdown = document.createElement("div");
+  dropdown.className = "menu-dropdown";
+  dropdown.innerHTML = `
+    <button class="menu-item" id="menuNewGame">New Game</button>
+    <button class="menu-item disabled">Quit</button>`;
+  menuBtn.parentElement.appendChild(dropdown);
+
+  menuBtn.addEventListener("click", e => {
+    e.stopPropagation();
+    dropdown.classList.toggle("open");
+  });
+  document.addEventListener("click", () => dropdown.classList.remove("open"));
+
+  // ---- new game config (persists across dialogs) ----
+  const GAME = { mode: "legs", sets: 1, legs: 3, legsPerSet: 3, startingPlayer: "left",
+                 score: { playerSets: 0, oppSets: 0, playerLegs: 0, oppLegs: 0 } };
+
+  function updateMidCol() {
+    const totalSets = GAME.mode === "sets" ? GAME.sets : 1;
+    const totalLegs = GAME.legs;
+    const currentSet = Math.min(GAME.score.playerSets + GAME.score.oppSets + 1, totalSets);
+    const currentLeg = Math.min(GAME.score.playerLegs + GAME.score.oppLegs + 1, totalLegs);
+    document.getElementById("setTitle").textContent        = `${currentSet} of ${totalSets} sets`;
+    document.getElementById("playerSetsBox").textContent   = GAME.score.playerSets;
+    document.getElementById("oppSetsBox").textContent      = GAME.score.oppSets;
+    document.getElementById("legTitle").textContent        = `${currentLeg} of ${totalLegs} legs`;
+    document.getElementById("playerLegsBox").textContent   = GAME.score.playerLegs;
+    document.getElementById("oppLegsBox").textContent      = GAME.score.oppLegs;
+  }
+  updateMidCol();   // initialise on load
+
+  function showNewGameDialog() {
+    const overlay = document.createElement("div");
+    overlay.className = "ng-overlay";
+
+    function html() {
+      const isSets = GAME.mode === "sets";
+      return `
+        <div class="ng-card">
+          <h2>New Game</h2>
+          <div class="ng-section">
+            <div class="ng-label">Game Mode</div>
+            <div class="ng-toggle">
+              <button id="modeLegs" ${GAME.mode==="legs"?"class='active'":""}>Legs</button>
+              <button id="modeSets" ${GAME.mode==="sets"?"class='active'":""}>Sets</button>
+            </div>
+          </div>
+          ${isSets ? `
+          <div class="ng-section">
+            <div class="ng-label">Sets</div>
+            <div class="ng-stepper">
+              <button id="setsDown">−</button>
+              <span id="setsVal">${GAME.sets}</span>
+              <button id="setsUp">+</button>
+            </div>
+          </div>` : ""}
+          <div class="ng-section">
+            <div class="ng-label">Legs</div>
+            <div class="ng-stepper">
+              <button id="legsDown">−</button>
+              <span id="legsVal">${GAME.legs}</span>
+              <button id="legsUp">+</button>
+            </div>
+          </div>
+          ${isSets ? `
+          <div class="ng-section">
+            <div class="ng-label">Legs per Set</div>
+            <div class="ng-stepper">
+              <button id="lpsDown">−</button>
+              <span id="lpsVal">${GAME.legsPerSet}</span>
+              <button id="lpsUp">+</button>
+            </div>
+          </div>` : ""}
+          <div class="ng-section">
+            <div class="ng-label">Starting Player</div>
+            <div class="ng-toggle">
+              <button id="startLeft"  ${GAME.startingPlayer==="left" ?"class='active'":""}>Left</button>
+              <button id="startRight" ${GAME.startingPlayer==="right"?"class='active'":""}>Right</button>
+            </div>
+          </div>
+          <button class="ng-start" id="ngStart">Start Game</button>
+        </div>`;
+    }
+
+    function rebind() {
+      overlay.innerHTML = html();
+      overlay.querySelector("#modeLegs").addEventListener("click",  () => { GAME.mode = "legs"; rebind(); });
+      overlay.querySelector("#modeSets").addEventListener("click",  () => { GAME.mode = "sets"; rebind(); });
+
+      function stepper(downSel, upSel, valSel, key, min) {
+        overlay.querySelector(downSel).addEventListener("click", () => {
+          if (GAME[key] > min) { GAME[key]--; overlay.querySelector(valSel).textContent = GAME[key]; }
+        });
+        overlay.querySelector(upSel).addEventListener("click", () => {
+          GAME[key]++; overlay.querySelector(valSel).textContent = GAME[key];
+        });
+      }
+      if (GAME.mode === "sets") {
+        stepper("#setsDown", "#setsUp", "#setsVal", "sets", 1);
+        stepper("#lpsDown",  "#lpsUp",  "#lpsVal",  "legsPerSet", 1);
+      }
+      stepper("#legsDown", "#legsUp", "#legsVal", "legs", 1);
+
+      function setStarter(s) {
+        GAME.startingPlayer = s;
+        overlay.querySelector("#startLeft").className  = s === "left"  ? "active" : "";
+        overlay.querySelector("#startRight").className = s === "right" ? "active" : "";
+      }
+      overlay.querySelector("#startLeft").addEventListener("click",  () => setStarter("left"));
+      overlay.querySelector("#startRight").addEventListener("click", () => setStarter("right"));
+
+      overlay.querySelector("#ngStart").addEventListener("click", () => {
+        overlay.remove();
+        GAME.score = { playerSets: 0, oppSets: 0, playerLegs: 0, oppLegs: 0 };
+        STATE.remaining = START;
+        STATE.visits = [];
+        STATE.editIndex = null;
+        STATE.lastScore = null;
+        STATE.undoStack = [];
+        STATE.redoStack = [];
+        updateMidCol();
+        updateHistory();
+        render();
+      });
+    }
+
+    overlay.addEventListener("click", e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+    rebind();
+  }
+
+  document.getElementById("menuNewGame").addEventListener("click", () => {
+    dropdown.classList.remove("open");
+    showNewGameDialog();
+  });
 
   // Remaining-score toggle (behaviour wired up later)
   const remToggle = document.getElementById("remToggle");
