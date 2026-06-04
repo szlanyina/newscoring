@@ -650,6 +650,16 @@
     };
     defs.appendChild(mkGrad("bgL", "#f05090", "#c41f72", "#5a0828")); // pink
     defs.appendChild(mkGrad("bgR", "#4db8e8", "#1a6fa8", "#081c30")); // blue
+    // vertical ring cell gradients (top-lit flat ring surface)
+    const mkLin = (id, top, mid, bot) => {
+      const g = el("linearGradient", { id, x1: "0", y1: "0", x2: "0", y2: "790",
+                                        gradientUnits: "userSpaceOnUse" });
+      [[0, top], [42, mid], [100, bot]].forEach(([p, col]) =>
+        g.appendChild(el("stop", { offset: `${p}%`, "stop-color": col })));
+      return g;
+    };
+    defs.appendChild(mkLin("rGU", "#545454", "#363636", "#181818")); // upper cells
+    defs.appendChild(mkLin("rGL", "#3a3a3a", "#222222", "#0c0c0c")); // lower cells
     const filt = el("filter", { id: "bSh", x: "-30%", y: "-30%", width: "160%", height: "160%" });
     filt.appendChild(el("feDropShadow", { dx: "0", dy: "4", stdDeviation: "5",
                                           "flood-color": "#000", "flood-opacity": "0.55" }));
@@ -676,11 +686,18 @@
       const isSel = STATE.dragging && STATE.previewIdx === i && segVals[i] != null;
       svg.appendChild(el("path", {
         d,
-        fill: isSel ? (STATE.currentPlayer === "right" ? "#1a5f8a" : "var(--green-bub)") : (upperSet.has(i) ? "#363636" : "#222222"),
+        fill: isSel ? (STATE.currentPlayer === "right" ? "#1a5f8a" : "var(--green-bub)") : (upperSet.has(i) ? "url(#rGU)" : "url(#rGL)"),
         "fill-opacity": isSel ? 1 : 0.7,   // 30% transparent (selected stays solid)
         stroke: "#000", "stroke-width": 3, "stroke-linejoin": "round"
       }));
     }
+
+    // 2) ring rim edges — thin strokes to simulate the bevel of a physical ring
+    // outer edge: darker (in shadow); inner edge: lighter (catches top light)
+    svg.appendChild(el("ellipse", { cx: T.cx, cy: T.cy, rx: T.ringOuterRx, ry: T.ringOuterRy,
+      fill: "none", stroke: "rgba(0,0,0,0.55)", "stroke-width": "5" }));
+    svg.appendChild(el("ellipse", { cx: T.cx, cy: T.cy, rx: T.ringInnerRx, ry: T.ringInnerRy,
+      fill: "none", stroke: "rgba(255,255,255,0.12)", "stroke-width": "4" }));
 
     // 3) inner disc — transparent so the black background shows through
     svg.appendChild(el("ellipse", {
@@ -702,7 +719,7 @@
       svg.appendChild(el("text", {
         x: p.x, y: p.y,
         'text-anchor': 'middle', dy: '0.35em',
-        class: "seg-num"
+        class: "seg-num", filter: "url(#tSh)"
       }, segVals[i]));
     }
 
