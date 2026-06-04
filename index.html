@@ -83,7 +83,7 @@
     }
     .actual-box {
       position: relative; border: 2px solid var(--c); border-radius: 9px; padding: 3px 6px;
-      width: 71px; box-sizing: border-box;
+      width: 71px; min-height: 35px; box-sizing: border-box;
       display: flex; align-items: center; justify-content: center;
       color: var(--c); text-align: center; line-height: 1;
     }
@@ -506,7 +506,7 @@
       const isSel = STATE.dragging && STATE.previewIdx === i && segVals[i] != null;
       svg.appendChild(el("path", {
         d,
-        fill: isSel ? "var(--green-bub)" : (upperSet.has(i) ? "#5a9bd4" : "#34719e"),
+        fill: isSel ? "var(--green-bub)" : (upperSet.has(i) ? "#6e6e6e" : "#444444"),
         stroke: "#fff", "stroke-width": 3, "stroke-linejoin": "round"
       }));
     }
