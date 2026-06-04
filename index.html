@@ -41,7 +41,7 @@
     /* a player panel: history column + main (remaining + actual throw) */
     .panel { display: flex; gap: 6px; }
     .panel.player { --c: var(--pink); justify-content: flex-start; }
-    .panel.opp    { --c: #9a9a9a; justify-content: flex-end; }
+    .panel.opp    { --c: #2980b9; justify-content: flex-end; }  /* dark sky blue */
 
     .hist-col {
       display: flex; flex-direction: column; gap: 3px; align-self: flex-start;
@@ -91,11 +91,13 @@
 
     /* middle: sets / legs */
     .mid-col { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
-    .mid-title  { font-size: 11px; font-weight: 700; color: var(--blue-dark); white-space: nowrap; }
+    .mid-title  { font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .set-title  { color: #4a4a4a; }   /* sets = dark grey */
+    .leg-title  { color: #3d97c2; }   /* legs = lighter blue */
     .mid-boxes  { display: flex; gap: 4px; }
-    .mid-box    { background: var(--frame); color: #fff; border-radius: 7px; min-width: 23px; height: 24px;
+    .mid-box    { background: #4a4a4a; color: #fff; border-radius: 7px; min-width: 23px; height: 24px;
                   display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
-    .mid-box.leg { background: #1f7fa6; }
+    .mid-box.leg { background: #3d97c2; }
     .mid-divider { width: 100%; height: 1px; background: #ccc; margin: 3px 0; }
 
     /* ---------- radial area ---------- */
@@ -192,12 +194,12 @@
 
       <!-- middle: sets / legs -->
       <div class="mid-col">
-        <div class="mid-title">1 of 1 sets</div>
+        <div class="mid-title set-title">1 of 1 sets</div>
         <div class="mid-boxes">
           <div class="mid-box">11</div><div class="mid-box">11</div>
         </div>
         <div class="mid-divider"></div>
-        <div class="mid-title">23 of 29 legs</div>
+        <div class="mid-title leg-title">23 of 29 legs</div>
         <div class="mid-boxes">
           <div class="mid-box leg">11</div><div class="mid-box leg">12</div>
         </div>
