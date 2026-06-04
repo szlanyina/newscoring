@@ -86,7 +86,7 @@
     .hist-box.selected, .actual-box.selected { background: var(--c); color: #fff; }
     .actual-box.selected .val { color: #fff; }
 
-    .main-col { display: flex; flex-direction: column; gap: 3px; width: 71px; margin-top: 20px; }
+    .main-col { display: flex; flex-direction: column; gap: 10px; width: 71px; margin-top: 20px; }
     .big-rem {
       border: 2px solid var(--c); border-radius: 9px; padding: 8px 6px;
       width: 71px; box-sizing: border-box; background: #303030;
@@ -536,7 +536,7 @@
       const isSel = STATE.dragging && STATE.previewIdx === i && segVals[i] != null;
       svg.appendChild(el("path", {
         d,
-        fill: isSel ? "var(--green-bub)" : (upperSet.has(i) ? "#6e6e6e" : "#444444"),
+        fill: isSel ? "var(--green-bub)" : (upperSet.has(i) ? "#444444" : "#333333"),
         "fill-opacity": isSel ? 1 : 0.7,   // 30% transparent (selected stays solid)
         stroke: "#000", "stroke-width": 3, "stroke-linejoin": "round"
       }));
