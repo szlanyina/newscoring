@@ -74,6 +74,11 @@
       font-size: 16px; font-weight: 700; color: #fff; background: #303030;
     }
     .hist-box.empty { border-color: transparent; background: none; }
+    @keyframes histSlideIn {
+      from { transform: translateY(-32px); opacity: 0; }
+      to   { transform: translateY(0);     opacity: 1; }
+    }
+    .hist-box.new-entry { animation: histSlideIn 0.22s ease-out; }
     .panel.player .actual-box:not([data-vi]) { border-color: #f4a8cd; background: none; }
     /* dart-count badge — small circle at the top-right corner */
     .darts {
@@ -772,7 +777,7 @@
           STATE.currentPlayer = STATE.currentPlayer === "left" ? "right" : "left";
         }
         STATE.settling = false;
-        updateHistory();   // move score from actual-box into hist-col
+        updateHistory(true);   // move score from actual-box into hist-col with slide-in
         render();
       }, 700);
     } else {
@@ -814,7 +819,7 @@
     P.lastScore = P.visits.length ? P.visits[P.visits.length - 1].score : null;
   }
 
-  function updateHistory() {
+  function updateHistory(animateNew = false) {
     // ---- left player ----
     const n = STATE.visits.length;
     playerRemainingEl.textContent = String(STATE.remaining);
@@ -829,7 +834,8 @@
     for (let k = leftStart; k >= 0; k--) {
       const v = STATE.visits[k];
       const sel = STATE.editIndex === k ? " selected" : "";
-      leftSlots.push(`<div class="hist-box${sel}" data-vi="${k}">${v.bust ? "✗" : v.score}<span class="darts">${(k + 1) * 3}</span></div>`);
+      const ani = (animateNew && k === leftStart) ? " new-entry" : "";
+      leftSlots.push(`<div class="hist-box${sel}${ani}" data-vi="${k}">${v.bust ? "✗" : v.score}<span class="darts">${(k + 1) * 3}</span></div>`);
     }
     while (leftSlots.length < 4) leftSlots.push(`<div class="hist-box empty"></div>`);
     histColEl.innerHTML = leftSlots.join("");
@@ -845,7 +851,8 @@
     for (let k = rightStart; k >= 0; k--) {
       const v = STATE.right.visits[k];
       const sel = STATE.right.editIndex === k ? " selected" : "";
-      rightSlots.push(`<div class="hist-box${sel}" data-vi="${k}" data-side="right">${v.bust ? "✗" : v.score}<span class="darts">${(k + 1) * 3}</span></div>`);
+      const ani = (animateNew && k === rightStart) ? " new-entry" : "";
+      rightSlots.push(`<div class="hist-box${sel}${ani}" data-vi="${k}" data-side="right">${v.bust ? "✗" : v.score}<span class="darts">${(k + 1) * 3}</span></div>`);
     }
     while (rightSlots.length < 4) rightSlots.push(`<div class="hist-box empty"></div>`);
     oppHistColEl.innerHTML = rightSlots.join("");
