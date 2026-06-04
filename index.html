@@ -173,14 +173,13 @@
       z-index: 99;
     }
     .win-card {
-      background: #fff; border-radius: 20px; padding: 32px 40px;
-      text-align: center;
+      background: #1e1e1e; border-radius: 20px; padding: 28px 36px;
+      text-align: center; color: #fff; border: 1px solid #444;
     }
-    .win-card h2 { font-size: 2.2rem; margin: 0 0 8px; }
-    .win-card p  { color: #555; margin: 0 0 20px; }
+    .win-card h2 { font-size: 1.4rem; font-weight: 800; margin: 0 0 20px; }
     .win-card button {
-      background: var(--blue-dark); color: #fff; border: none;
-      border-radius: 12px; padding: 10px 28px; font-size: 16px; font-weight: 700; cursor: pointer;
+      background: var(--pink); color: #fff; border: none;
+      border-radius: 13px; padding: 12px 32px; font-size: 16px; font-weight: 700; cursor: pointer;
     }
 
     /* ---------- footer ---------- */
@@ -1104,7 +1103,7 @@
     overlay.className = "win-overlay";
     overlay.innerHTML = `
       <div class="win-card">
-        <h2>🎯 ${label} wins!</h2>
+        <h2>${label} wins!</h2>
         <button id="winClose">New Game</button>
       </div>`;
     document.body.appendChild(overlay);
