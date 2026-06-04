@@ -111,7 +111,10 @@
       transition: opacity 0.15s, background 0.15s;
     }
     .rem-toggle { right: 23px; opacity: 0.55; }
-    .menu-btn   { left: 23px;  opacity: 0.85; }
+    .menu-btn   {
+      left: 23px; opacity: 0.85;
+      padding: 7px 11px 6px; font-size: 11px; border-radius: 12px;
+    }
     .rem-toggle.active {
       background: var(--blue-dark); opacity: 1; color: #ff9500;
     }
@@ -121,7 +124,7 @@
       transition: background 0.15s;
     }
     .rem-toggle.active .rem-toggle__dot { background: #ff9500; }
-    .menu-btn__icon { font-size: 14px; line-height: 1; }
+    .menu-btn__icon { font-size: 12px; line-height: 1; }
 
     .seg-line { stroke: var(--blue-dark); stroke-width: 1.4; }
     .seg-num  { font-size: 26px; font-weight: 700; fill: #fff;
