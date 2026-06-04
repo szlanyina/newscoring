@@ -21,13 +21,13 @@
     html, body {
       margin: 0; padding: 0; height: 100%;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #e9eef1; color: var(--text);
+      background: #000; color: var(--text);
       overscroll-behavior: none;
     }
     /* phone-ish frame, but fills the screen on an actual phone */
     .frame {
       max-width: 560px; margin: 0 auto; height: 100dvh; overflow: hidden;
-      background: #fff;
+      background: #000;
       padding: 6px 4px 8px; display: flex; flex-direction: column; gap: 6px;
     }
 
@@ -486,7 +486,7 @@
   function drawBubble(i, p, labelOverride) {
     svg.appendChild(el("circle", {
       cx: p.x, cy: p.y, r: T.bubbleR,
-      class: i === STATE.activeRange ? "bubble bubble-active" : "bubble"
+      class: "bubble"            // no special highlight for the active/selected bubble
     }));
     // Only the settling bubble (with its score override) shows a label while a
     // drag is in progress or a drop is still settling; everything else is blank.
@@ -530,10 +530,10 @@
       }));
     }
 
-    // 3) white inner disc (no outline)
+    // 3) inner disc — transparent so the black background shows through
     svg.appendChild(el("ellipse", {
       cx: T.cx, cy: T.cy, rx: T.discRx, ry: T.discRy,
-      fill: "#fff", stroke: "none"
+      fill: "none", stroke: "none"
     }));
 
     // 4) exact-value numbers — only while a bubble is being dragged. The
