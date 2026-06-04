@@ -157,10 +157,14 @@
     }
 
     /* ---------- footer ---------- */
+    .footer-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 18px;
+    }
     .back {
-      align-self: center; background: var(--blue-dark); color: #fff; border: none;
-      border-radius: 14px; padding: 9px 34px; font-size: 17px; font-weight: 700;
-      letter-spacing: 1px;
+      background: var(--blue-dark); color: #fff; border: none;
+      border-radius: 14px; padding: 9px 28px; font-size: 17px; font-weight: 700;
+      letter-spacing: 1px; cursor: pointer;
     }
   </style>
 </head>
@@ -227,8 +231,11 @@
       <svg id="scorer" viewBox="0 0 600 790" aria-label="radial score selector"></svg>
     </div>
 
-    <!-- ===== footer ===== -->
-    <button class="back" id="undoBtn">UNDO</button>
+    <!-- ===== footer: undo (left) / redo (right) ===== -->
+    <div class="footer-row">
+      <button class="back" id="undoBtn">UNDO</button>
+      <button class="back" id="redoBtn">REDO</button>
+    </div>
   </div>
 
   <script>
@@ -303,6 +310,7 @@
     settleScore: null,   // committed score shown on the bubble during its 500ms linger
     editIndex: null,     // visit index selected for overwrite (click a throw box)
     undoStack: [],       // operation log: { type:'add' } | { type:'edit', index, oldScore }
+    redoStack: [],       // undone operations available to redo
     remMode: false,      // REM toggle: dial the new remaining instead of the throw
   };
 
@@ -622,6 +630,7 @@
         if (navigator.vibrate) navigator.vibrate(bust ? [20,30,20] : 15);
       }
       if (committed != null) {
+        STATE.redoStack = [];   // a fresh action invalidates the redo history
         updateHistory();
         if (STATE.remaining === 0) handleWin();
       }
@@ -654,6 +663,7 @@
 
   // ========================= HISTORY / UNDO / WIN ============================
   const undoBtn = document.getElementById("undoBtn");
+  const redoBtn = document.getElementById("redoBtn");
 
   const playerRemainingEl = document.getElementById("playerRemaining");
   const actualDartsEl     = document.getElementById("actualDarts");
@@ -701,6 +711,9 @@
     const canUndo = STATE.undoStack.length > 0;
     undoBtn.disabled = !canUndo;
     undoBtn.style.opacity = canUndo ? "" : "0.35";
+    const canRedo = STATE.redoStack.length > 0;
+    redoBtn.disabled = !canRedo;
+    redoBtn.style.opacity = canRedo ? "" : "0.35";
   }
   updateHistory();   // initial empty history
 
@@ -718,9 +731,29 @@
     const op = STATE.undoStack.pop();
     if (!op) return;
     if (op.type === "add") {
-      STATE.visits.pop();                         // remove the throw that was added
+      const removed = STATE.visits.pop();         // remove the throw that was added
+      STATE.redoStack.push({ type: "add", visit: removed });
     } else if (op.type === "edit") {
+      const newScore = STATE.visits[op.index].score;
       STATE.visits[op.index].score = op.oldScore; // restore the overwritten score
+      STATE.redoStack.push({ type: "edit", index: op.index, newScore });
+    }
+    STATE.editIndex = null;
+    recompute();
+    updateHistory();
+    render();
+  });
+
+  redoBtn.addEventListener("click", () => {
+    const op = STATE.redoStack.pop();
+    if (!op) return;
+    if (op.type === "add") {
+      STATE.visits.push(op.visit);                // re-add the removed throw
+      STATE.undoStack.push({ type: "add" });
+    } else if (op.type === "edit") {
+      const oldScore = STATE.visits[op.index].score;
+      STATE.visits[op.index].score = op.newScore; // re-apply the overwrite
+      STATE.undoStack.push({ type: "edit", index: op.index, oldScore });
     }
     STATE.editIndex = null;
     recompute();
@@ -744,6 +777,7 @@
       STATE.editIndex = null;
       STATE.lastScore = null;
       STATE.undoStack = [];
+      STATE.redoStack = [];
       overlay.remove();
       updateHistory();
       render();
