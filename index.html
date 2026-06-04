@@ -40,8 +40,8 @@
 
     /* a player panel: history column + main (remaining + actual throw) */
     .panel { display: flex; gap: 6px; }
-    .panel.opp    { --c: #9a9a9a; justify-content: flex-start; }
-    .panel.player { --c: var(--pink); justify-content: flex-end; }
+    .panel.player { --c: var(--pink); justify-content: flex-start; }
+    .panel.opp    { --c: #9a9a9a; justify-content: flex-end; }
 
     .hist-col {
       display: flex; flex-direction: column; gap: 3px; align-self: flex-start;
@@ -174,20 +174,15 @@
     <!-- ===== header scoreboard ===== -->
     <div class="scoreboard">
 
-      <!-- opponent (left, gray) — structurally identical to the player side,
-           with its own ids/hooks for later wiring (static values for now) -->
-      <div class="panel opp">
-        <div class="hist-col" id="oppHistCol">
-          <div class="hist-box">60<span class="darts">12</span></div>
-          <div class="hist-box">100<span class="darts">9</span></div>
-          <div class="hist-box">60<span class="darts">6</span></div>
-          <div class="hist-box">40<span class="darts">3</span></div>
-        </div>
+      <!-- player (left, magenta) — wired to live state. History on the far
+           left (outer), main column toward the centre. -->
+      <div class="panel player">
+        <div class="hist-col" id="histCol"></div>
         <div class="main-col">
-          <div class="big-rem" id="oppRemaining">141</div>
-          <div class="actual-box" id="oppActualBox">
-            <span class="val" id="oppActualVal">100</span>
-            <span class="darts" id="oppActualDarts">15</span>
+          <div class="big-rem" id="playerRemaining">501</div>
+          <div class="actual-box" id="actualBox">
+            <span class="val" id="scoreVal">–</span>
+            <span class="darts" id="actualDarts"></span>
           </div>
         </div>
       </div>
@@ -205,16 +200,22 @@
         </div>
       </div>
 
-      <!-- player (right, magenta) — wired to live state -->
-      <div class="panel player">
+      <!-- opponent (right, gray) — structurally identical, ids for later
+           wiring. Main column toward the centre, history on the far right. -->
+      <div class="panel opp">
         <div class="main-col">
-          <div class="big-rem" id="playerRemaining">501</div>
-          <div class="actual-box" id="actualBox">
-            <span class="val" id="scoreVal">–</span>
-            <span class="darts" id="actualDarts"></span>
+          <div class="big-rem" id="oppRemaining">141</div>
+          <div class="actual-box" id="oppActualBox">
+            <span class="val" id="oppActualVal">100</span>
+            <span class="darts" id="oppActualDarts">15</span>
           </div>
         </div>
-        <div class="hist-col" id="histCol"></div>
+        <div class="hist-col" id="oppHistCol">
+          <div class="hist-box">60<span class="darts">12</span></div>
+          <div class="hist-box">100<span class="darts">9</span></div>
+          <div class="hist-box">60<span class="darts">6</span></div>
+          <div class="hist-box">40<span class="darts">3</span></div>
+        </div>
       </div>
     </div>
 
