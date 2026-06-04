@@ -773,11 +773,12 @@
         settleTimer = null;
         STATE.dragPos = null;
         STATE.settleScore = null;
+        const scored = pendingSwitch ? STATE.currentPlayer : null;
         if (pendingSwitch) {
           STATE.currentPlayer = STATE.currentPlayer === "left" ? "right" : "left";
         }
         STATE.settling = false;
-        updateHistory(true);   // move score from actual-box into hist-col with slide-in
+        updateHistory(scored);   // animate only the side that just scored
         render();
       }, 700);
     } else {
@@ -819,7 +820,7 @@
     P.lastScore = P.visits.length ? P.visits[P.visits.length - 1].score : null;
   }
 
-  function updateHistory(animateNew = false) {
+  function updateHistory(animatePlayer = null) {
     // ---- left player ----
     const n = STATE.visits.length;
     playerRemainingEl.textContent = String(STATE.remaining);
@@ -834,7 +835,7 @@
     for (let k = leftStart; k >= 0; k--) {
       const v = STATE.visits[k];
       const sel = STATE.editIndex === k ? " selected" : "";
-      const ani = (animateNew && k === leftStart) ? " new-entry" : "";
+      const ani = (animatePlayer === "left" && k === leftStart) ? " new-entry" : "";
       leftSlots.push(`<div class="hist-box${sel}${ani}" data-vi="${k}">${v.bust ? "✗" : v.score}<span class="darts">${(k + 1) * 3}</span></div>`);
     }
     while (leftSlots.length < 4) leftSlots.push(`<div class="hist-box empty"></div>`);
@@ -851,7 +852,7 @@
     for (let k = rightStart; k >= 0; k--) {
       const v = STATE.right.visits[k];
       const sel = STATE.right.editIndex === k ? " selected" : "";
-      const ani = (animateNew && k === rightStart) ? " new-entry" : "";
+      const ani = (animatePlayer === "right" && k === rightStart) ? " new-entry" : "";
       rightSlots.push(`<div class="hist-box${sel}${ani}" data-vi="${k}" data-side="right">${v.bust ? "✗" : v.score}<span class="darts">${(k + 1) * 3}</span></div>`);
     }
     while (rightSlots.length < 4) rightSlots.push(`<div class="hist-box empty"></div>`);
