@@ -51,9 +51,10 @@
     }
 
     /* a player panel: history column + main (remaining + actual throw) */
-    .panel { display: flex; gap: 6px; }
+    .panel { display: flex; gap: 6px; border-radius: 9px; }
     .panel.player { --c: var(--pink); justify-content: flex-start; }
     .panel.opp    { --c: #2980b9; justify-content: flex-end; }  /* dark sky blue */
+    .panel.on-turn { box-shadow: 0 0 0 3px #b0b0b0; }
 
     .hist-col {
       display: flex; flex-direction: column; gap: 3px; align-self: flex-start;
@@ -63,6 +64,7 @@
       scrollbar-width: none;
     }
     .hist-col::-webkit-scrollbar { display: none; }
+    .panel.player .hist-col { padding: 8px 0 2px 7px; }
     .hist-box { flex: 0 0 auto; }
     .hist-box {
       position: relative; border: 2px solid var(--c); border-radius: 7px;
@@ -663,6 +665,10 @@
     }
     scoreEl.textContent = leftTxt;
     oppScoreEl.textContent = rightTxt;
+
+    // active-turn outline on the current player's panel
+    playerPanelEl.classList.toggle("on-turn", STATE.currentPlayer === "left");
+    oppPanelEl.classList.toggle("on-turn",    STATE.currentPlayer === "right");
   }
 
   // =========================== GESTURE ====================================
@@ -783,6 +789,8 @@
   const oppActualDartsEl  = document.getElementById("oppActualDarts");
   const oppHistColEl      = document.getElementById("oppHistCol");
   const oppActualBoxEl    = document.getElementById("oppActualBox");
+  const playerPanelEl     = document.querySelector(".panel.player");
+  const oppPanelEl        = document.querySelector(".panel.opp");
 
   // Replay all visit scores from START, refreshing each visit's bust/after and
   // the running remaining (used after an in-place edit).
