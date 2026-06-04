@@ -58,6 +58,9 @@
       font-size: 16px; font-weight: 700; color: var(--c);
     }
     .hist-box.empty { border-color: #ccc; }
+    /* player empty contours = light magenta (lighter than the player score colour) */
+    .panel.player .hist-box.empty,
+    .panel.player .actual-box:not([data-vi]) { border-color: #f4a8cd; }
     /* dart-count badge — small circle at the top-right corner */
     .darts {
       position: absolute; top: -7px; right: -5px;
@@ -181,7 +184,7 @@
         <div class="main-col">
           <div class="big-rem" id="playerRemaining">501</div>
           <div class="actual-box" id="actualBox">
-            <span class="val" id="scoreVal">–</span>
+            <span class="val" id="scoreVal"></span>
             <span class="darts" id="actualDarts"></span>
           </div>
         </div>
@@ -552,7 +555,7 @@
 
     // 6) actual-throw box shows last committed throw; previews while dragging.
     //    In REM mode the dialed value is the remaining, so preview the resulting throw.
-    let scoreTxt = STATE.lastScore != null ? String(STATE.lastScore) : "–";
+    let scoreTxt = STATE.lastScore != null ? String(STATE.lastScore) : "";
     if (STATE.dragging && STATE.previewIdx != null) {
       const v = segVals[STATE.previewIdx];
       if (v != null) {
