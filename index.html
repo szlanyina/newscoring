@@ -242,6 +242,23 @@
       width: 100%; padding: 13px; margin-top: 10px; border: none; border-radius: 13px;
       background: var(--pink); color: #fff; font-size: 16px; font-weight: 800; cursor: pointer;
     }
+
+    /* ---------- checkout dart-count popup ---------- */
+    .dc-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      display: flex; align-items: center; justify-content: center; z-index: 100;
+    }
+    .dc-card {
+      background: #1e1e1e; border-radius: 20px; padding: 28px 32px;
+      color: #fff; text-align: center; border: 2px solid #444;
+    }
+    .dc-card h2 { margin: 0 0 20px; font-size: 1rem; font-weight: 700; color: #aaa;
+                  text-transform: uppercase; letter-spacing: 0.06em; }
+    .dc-btns { display: flex; gap: 14px; justify-content: center; }
+    .dc-btn {
+      width: 64px; height: 64px; border-radius: 14px; border: 2px solid #555;
+      background: #2a2a2a; color: #fff; font-size: 26px; font-weight: 800; cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -707,12 +724,39 @@
 
   let settleTimer = null;             // pending "snap bubble home" timeout
 
+  function showDartCountPopup(player, callback) {
+    const c = player === "left" ? "var(--pink)" : "#2980b9";
+    const overlay = document.createElement("div");
+    overlay.className = "dc-overlay";
+    overlay.innerHTML = `
+      <div class="dc-card" style="border-color:${c}">
+        <h2>Darts used for checkout?</h2>
+        <div class="dc-btns">
+          <button class="dc-btn" data-n="1">1</button>
+          <button class="dc-btn" data-n="2">2</button>
+          <button class="dc-btn" data-n="3">3</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelectorAll(".dc-btn").forEach(btn => {
+      btn.style.borderColor = c;
+      btn.addEventListener("click", () => {
+        const P = player === "left" ? STATE : STATE.right;
+        const last = P.visits[P.visits.length - 1];
+        if (last) last.checkoutDarts = Number(btn.dataset.n);
+        overlay.remove();
+        callback();
+      });
+    });
+  }
+
   function endDrag(e) {
     if (!STATE.dragging) return;
     const segVals = buildSegmentValues(rangeValues(STATE.activeRange), RANGES[STATE.activeRange]);
     let committed = (STATE.previewIdx != null) ? segVals[STATE.previewIdx] : null;
     let recordedScore = committed;
-    let pendingSwitch = false;   // defer player switch until bubble snaps home
+    let pendingSwitch = false;
+    let checkoutPl = null;    // set when this throw is a checkout
 
     if (committed != null) {
       const pl = STATE.currentPlayer;
@@ -753,10 +797,10 @@
       if (committed != null) {
         STATE.redoStack = [];
         if (P.remaining === 0) {
-          handleLegWin(pl);
+          checkoutPl = pl;         // defer leg win until dart count answered
         } else if (!isEdit) {
           pendingSwitch = true;
-          STATE.settling = true;   // set before updateHistory() so hist-col skips latest
+          STATE.settling = true;
         }
         updateHistory();
       }
@@ -766,7 +810,17 @@
     STATE.previewIdx = null;
     try { svg.releasePointerCapture(e.pointerId); } catch {}
 
-    if (committed != null) {
+    if (checkoutPl != null) {
+      // Bubble lingers at drop spot; popup appears on top.
+      // When player picks dart count, clear bubble and start next leg.
+      STATE.settleScore = recordedScore;
+      render();
+      showDartCountPopup(checkoutPl, () => {
+        STATE.dragPos = null;
+        STATE.settleScore = null;
+        handleLegWin(checkoutPl);
+      });
+    } else if (committed != null) {
       STATE.settleScore = recordedScore;
       settleTimer = setTimeout(() => {
         settleTimer = null;
@@ -777,7 +831,7 @@
           STATE.currentPlayer = STATE.currentPlayer === "left" ? "right" : "left";
         }
         STATE.settling = false;
-        updateHistory(scored);   // animate only the side that just scored
+        updateHistory(scored);
         render();
       }, 700);
     } else {
