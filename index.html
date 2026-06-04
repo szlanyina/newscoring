@@ -150,7 +150,8 @@
     .seg-num  { font-size: 26px; font-weight: 700; fill: #fff;
       text-anchor: middle; }
     .seg-num-active { font-size: 28px; font-weight: 800; fill: #fff; }
-    .bubble   { fill: var(--green-bub); stroke: #7a1043; stroke-width: 2; }
+    .bubble       { fill: var(--green-bub); stroke: #7a1043; stroke-width: 2; }
+    .bubble-right { fill: #1a5f8a;          stroke: #0d3f60; stroke-width: 2; }
     .bubble-active { fill: #c41f72; stroke: #6a0e3a; stroke-width: 3; }
     .bubble-text { fill: #fff; font-size: 26px; font-weight: 700;
       text-anchor: middle; dominant-baseline: central; }
@@ -370,23 +371,29 @@
 
   // --- live interaction state ---
   const STATE = {
-    activeRange: null,   // index 0..9 of the range whose values fill the ring
+    currentPlayer: "left",   // "left" | "right"
+    legStarter: "left",      // who throws first this leg
+    // left player
+    activeRange: null,
     dragging: false,
-    previewIdx: null,    // ring segment under the finger (0..19) or null
+    previewIdx: null,
     lastScore: null,
-    remaining: START,    // running 501 countdown
-    visits: [],          // { score, bust, after } — full visit log
-    dragPos: null,       // live pointer pos — the held bubble follows it
-    settleScore: null,   // committed score shown on the bubble during its 500ms linger
-    editIndex: null,     // visit index selected for overwrite (click a throw box)
-    undoStack: [],       // operation log: { type:'add' } | { type:'edit', index, oldScore }
-    redoStack: [],       // undone operations available to redo
-    remMode: false,      // REM toggle: dial the new remaining instead of the throw
+    remaining: START,
+    visits: [],
+    dragPos: null,
+    settleScore: null,
+    editIndex: null,
+    undoStack: [],   // { type, player, ... }
+    redoStack: [],
+    remMode: false,
+    // right player
+    right: { remaining: START, visits: [], lastScore: null, editIndex: null },
   };
 
   // =========================================================================
   const svg = document.getElementById("scorer");
-  const scoreEl = document.getElementById("scoreVal");
+  const scoreEl    = document.getElementById("scoreVal");
+  const oppScoreEl = document.getElementById("oppActualVal");
   const NS = "http://www.w3.org/2000/svg";
   const deg = d => d * Math.PI / 180;
   const step  = 360 / T.segCount;       // angle per ring segment
@@ -550,7 +557,7 @@
   function drawBubble(i, p, labelOverride) {
     svg.appendChild(el("circle", {
       cx: p.x, cy: p.y, r: T.bubbleR,
-      class: "bubble"            // no special highlight for the active/selected bubble
+      class: STATE.currentPlayer === "right" ? "bubble-right" : "bubble"
     }));
     // Only the settling bubble (with its score override) shows a label while a
     // drag is in progress or a drop is still settling; everything else is blank.
@@ -636,19 +643,26 @@
       drawBubble(STATE.activeRange, p, override);
     }
 
-    // 6) actual-throw box shows last committed throw; previews while dragging.
-    //    In REM mode the dialed value is the remaining, so preview the resulting throw.
-    const lastVisit = STATE.visits[STATE.visits.length - 1];
-    let scoreTxt = lastVisit ? (lastVisit.bust ? "✗" : String(lastVisit.score)) : "";
+    // 6) actual-throw boxes — each panel always shows that player's last throw,
+    //    plus a live preview in the active player's panel while dragging.
+    const leftVisit  = STATE.visits[STATE.visits.length - 1];
+    const rightVisit = STATE.right.visits[STATE.right.visits.length - 1];
+    let leftTxt  = leftVisit  ? (leftVisit.bust  ? "✗" : String(leftVisit.score))  : "";
+    let rightTxt = rightVisit ? (rightVisit.bust ? "✗" : String(rightVisit.score)) : "";
+
     if (STATE.dragging && STATE.previewIdx != null) {
       const v = segVals[STATE.previewIdx];
       if (v != null) {
-        if (STATE.remMode) { const t = STATE.remaining - v; scoreTxt = t >= 0 ? String(t) : "✗"; }
-        else scoreTxt = String(v);
+        const P = STATE.currentPlayer === "left" ? STATE : STATE.right;
+        const previewTxt = STATE.remMode
+          ? (P.remaining - v >= 0 ? String(P.remaining - v) : "✗")
+          : String(v);
+        if (STATE.currentPlayer === "left") leftTxt = previewTxt;
+        else rightTxt = previewTxt;
       }
     }
-    scoreEl.style.color = "";
-    scoreEl.textContent = scoreTxt;
+    scoreEl.textContent = leftTxt;
+    oppScoreEl.textContent = rightTxt;
   }
 
   // =========================== GESTURE ====================================
@@ -684,43 +698,49 @@
     let recordedScore = committed;   // the throw value (shown on the bubble during linger)
 
     if (committed != null) {
-      if (STATE.editIndex != null && STATE.editIndex < STATE.visits.length) {
-        // Overwrite the selected throw, then replay the leg from the start.
-        const idx = STATE.editIndex;
-        STATE.undoStack.push({ type: "edit", index: idx, oldScore: STATE.visits[idx].score });
-        STATE.visits[idx].score = committed;
-        STATE.editIndex = null;
-        recompute();
+      const pl = STATE.currentPlayer;
+      const P  = pl === "left" ? STATE : STATE.right;
+      const isEdit = P.editIndex != null && P.editIndex < P.visits.length;
+
+      if (isEdit) {
+        const idx = P.editIndex;
+        STATE.undoStack.push({ type: "edit", player: pl, index: idx, oldScore: P.visits[idx].score });
+        P.visits[idx].score = committed;
+        P.editIndex = null;
+        recompute(pl);
         recordedScore = committed;
         if (navigator.vibrate) navigator.vibrate(15);
       } else if (STATE.remMode) {
-        // REM mode: the dialed value is the NEW remaining; throw = current - dialed.
-        const newRem     = committed;
-        const throwScore = STATE.remaining - newRem;
+        const throwScore = P.remaining - committed;
         if (throwScore < 0) {
-          committed = null;          // dialed remaining exceeds current — invalid, no commit
+          committed = null;
         } else {
-          STATE.remaining = newRem;
-          STATE.visits.push({ score: throwScore, bust: false, after: newRem });
-          STATE.lastScore = throwScore;
-          STATE.undoStack.push({ type: "add" });
+          P.remaining = committed;
+          P.visits.push({ score: throwScore, bust: false, after: committed });
+          P.lastScore = throwScore;
+          STATE.undoStack.push({ type: "add", player: pl });
           recordedScore = throwScore;
           if (navigator.vibrate) navigator.vibrate(15);
         }
       } else {
-        const newRem = STATE.remaining - committed;
+        const newRem = P.remaining - committed;
         const bust   = newRem < 0;
-        if (!bust) STATE.remaining = newRem;
-        STATE.visits.push({ score: committed, bust, after: STATE.remaining });
-        STATE.lastScore = committed;
-        STATE.undoStack.push({ type: "add" });
+        if (!bust) P.remaining = newRem;
+        P.visits.push({ score: committed, bust, after: P.remaining });
+        P.lastScore = committed;
+        STATE.undoStack.push({ type: "add", player: pl });
         recordedScore = committed;
         if (navigator.vibrate) navigator.vibrate(bust ? [20,30,20] : 15);
       }
+
       if (committed != null) {
-        STATE.redoStack = [];   // a fresh action invalidates the redo history
+        STATE.redoStack = [];
         updateHistory();
-        if (STATE.remaining === 0) handleWin();
+        if (P.remaining === 0) {
+          handleLegWin(pl);
+        } else if (!isEdit) {
+          STATE.currentPlayer = pl === "left" ? "right" : "left";
+        }
       }
     }
 
@@ -757,44 +777,58 @@
   const actualDartsEl     = document.getElementById("actualDarts");
   const histColEl         = document.getElementById("histCol");
   const actualBoxEl       = document.getElementById("actualBox");
+  const oppRemainingEl    = document.getElementById("oppRemaining");
+  const oppActualDartsEl  = document.getElementById("oppActualDarts");
+  const oppHistColEl      = document.getElementById("oppHistCol");
+  const oppActualBoxEl    = document.getElementById("oppActualBox");
 
   // Replay all visit scores from START, refreshing each visit's bust/after and
   // the running remaining (used after an in-place edit).
-  function recompute() {
+  function recompute(player = "left") {
+    const P = player === "left" ? STATE : STATE.right;
     let rem = START;
-    STATE.visits.forEach(v => {
+    P.visits.forEach(v => {
       const next = rem - v.score;
       v.bust = next < 0;
       if (!v.bust) rem = next;
       v.after = rem;
     });
-    STATE.remaining = rem;
-    STATE.lastScore = STATE.visits.length ? STATE.visits[STATE.visits.length - 1].score : null;
+    P.remaining = rem;
+    P.lastScore = P.visits.length ? P.visits[P.visits.length - 1].score : null;
   }
 
   function updateHistory() {
+    // ---- left player ----
     const n = STATE.visits.length;
-
-    // Big number = remaining score
     playerRemainingEl.textContent = String(STATE.remaining);
-
-    // Actual-throw box = latest visit (index n-1): darts + edit wiring
     actualDartsEl.textContent = n ? `${n * 3}` : "";
     actualDartsEl.style.display = n ? "" : "none";
     if (n) { actualBoxEl.dataset.vi = n - 1; } else { delete actualBoxEl.dataset.vi; }
     actualBoxEl.classList.toggle("selected", STATE.editIndex === n - 1 && n > 0);
-    // (the throw value itself is written by render() so it also previews on drag)
-
-    // History column = ALL previous visits (newest at top), scrollable; pad to
-    // a minimum of 4 so the column keeps its height when there are few throws.
-    const slots = [];
+    const leftSlots = [];
     for (let k = n - 2; k >= 0; k--) {
       const v = STATE.visits[k];
       const sel = STATE.editIndex === k ? " selected" : "";
-      slots.push(`<div class="hist-box${sel}" data-vi="${k}">${v.bust ? "✗" : v.score}<span class="darts">${(k + 1) * 3}</span></div>`);
+      leftSlots.push(`<div class="hist-box${sel}" data-vi="${k}">${v.bust ? "✗" : v.score}<span class="darts">${(k + 1) * 3}</span></div>`);
     }
-    while (slots.length < 4) slots.push(`<div class="hist-box empty"></div>`);
-    histColEl.innerHTML = slots.join("");
+    while (leftSlots.length < 4) leftSlots.push(`<div class="hist-box empty"></div>`);
+    histColEl.innerHTML = leftSlots.join("");
+
+    // ---- right player ----
+    const m = STATE.right.visits.length;
+    oppRemainingEl.textContent = String(STATE.right.remaining);
+    oppActualDartsEl.textContent = m ? `${m * 3}` : "";
+    oppActualDartsEl.style.display = m ? "" : "none";
+    if (m) { oppActualBoxEl.dataset.vi = m - 1; } else { delete oppActualBoxEl.dataset.vi; }
+    oppActualBoxEl.classList.toggle("selected", STATE.right.editIndex === m - 1 && m > 0);
+    const rightSlots = [];
+    for (let k = m - 2; k >= 0; k--) {
+      const v = STATE.right.visits[k];
+      const sel = STATE.right.editIndex === k ? " selected" : "";
+      rightSlots.push(`<div class="hist-box${sel}" data-vi="${k}" data-side="right">${v.bust ? "✗" : v.score}<span class="darts">${(k + 1) * 3}</span></div>`);
+    }
+    while (rightSlots.length < 4) rightSlots.push(`<div class="hist-box empty"></div>`);
+    oppHistColEl.innerHTML = rightSlots.join("");
 
     const canUndo = STATE.undoStack.length > 0;
     undoBtn.disabled = !canUndo;
@@ -805,70 +839,118 @@
   }
   updateHistory();   // initial empty history
 
-  // Click a throw box → toggle it as the edit target; the next dial commit
-  // overwrites that throw instead of adding a new one.
+  // Click a throw box → select it for edit; switches to that player's turn.
   document.querySelector(".panel.player").addEventListener("click", (e) => {
     const box = e.target.closest("[data-vi]");
     if (!box) return;
     const vi = Number(box.dataset.vi);
     STATE.editIndex = (STATE.editIndex === vi) ? null : vi;
-    updateHistory();
+    STATE.right.editIndex = null;
+    if (STATE.editIndex != null) STATE.currentPlayer = "left";
+    updateHistory(); render();
+  });
+  document.querySelector(".panel.opp").addEventListener("click", (e) => {
+    const box = e.target.closest("[data-vi]");
+    if (!box) return;
+    const vi = Number(box.dataset.vi);
+    STATE.right.editIndex = (STATE.right.editIndex === vi) ? null : vi;
+    STATE.editIndex = null;
+    if (STATE.right.editIndex != null) STATE.currentPlayer = "right";
+    updateHistory(); render();
   });
 
   undoBtn.addEventListener("click", () => {
     const op = STATE.undoStack.pop();
     if (!op) return;
+    const P = op.player === "left" ? STATE : STATE.right;
     if (op.type === "add") {
-      const removed = STATE.visits.pop();         // remove the throw that was added
-      STATE.redoStack.push({ type: "add", visit: removed });
+      const removed = P.visits.pop();
+      STATE.redoStack.push({ type: "add", player: op.player, visit: removed });
+      // restore the turn to the player who just had it undone
+      STATE.currentPlayer = op.player;
     } else if (op.type === "edit") {
-      const newScore = STATE.visits[op.index].score;
-      STATE.visits[op.index].score = op.oldScore; // restore the overwritten score
-      STATE.redoStack.push({ type: "edit", index: op.index, newScore });
+      const newScore = P.visits[op.index].score;
+      P.visits[op.index].score = op.oldScore;
+      STATE.redoStack.push({ type: "edit", player: op.player, index: op.index, newScore });
     }
-    STATE.editIndex = null;
-    recompute();
-    updateHistory();
-    render();
+    STATE.editIndex = null; STATE.right.editIndex = null;
+    recompute(op.player);
+    updateHistory(); render();
   });
 
   redoBtn.addEventListener("click", () => {
     const op = STATE.redoStack.pop();
     if (!op) return;
+    const P = op.player === "left" ? STATE : STATE.right;
     if (op.type === "add") {
-      STATE.visits.push(op.visit);                // re-add the removed throw
-      STATE.undoStack.push({ type: "add" });
+      P.visits.push(op.visit);
+      STATE.undoStack.push({ type: "add", player: op.player });
+      STATE.currentPlayer = op.player === "left" ? "right" : "left";
     } else if (op.type === "edit") {
-      const oldScore = STATE.visits[op.index].score;
-      STATE.visits[op.index].score = op.newScore; // re-apply the overwrite
-      STATE.undoStack.push({ type: "edit", index: op.index, oldScore });
+      const oldScore = P.visits[op.index].score;
+      P.visits[op.index].score = op.newScore;
+      STATE.undoStack.push({ type: "edit", player: op.player, index: op.index, oldScore });
     }
-    STATE.editIndex = null;
-    recompute();
-    updateHistory();
-    render();
+    STATE.editIndex = null; STATE.right.editIndex = null;
+    recompute(op.player);
+    updateHistory(); render();
   });
 
-  function handleWin() {
+  function resetLeg(nextStarter) {
+    STATE.remaining   = START; STATE.visits = []; STATE.lastScore = null; STATE.editIndex = null;
+    STATE.right.remaining = START; STATE.right.visits = []; STATE.right.lastScore = null; STATE.right.editIndex = null;
+    STATE.undoStack = []; STATE.redoStack = [];
+    STATE.legStarter = nextStarter;
+    STATE.currentPlayer = nextStarter;
+    updateHistory(); updateMidCol(); render();
+  }
+
+  function handleLegWin(winner) {
+    const isLeft = winner === "left";
+
+    if (GAME.mode === "sets") {
+      if (isLeft) GAME.score.playerLegs++; else GAME.score.oppLegs++;
+      const legsToWin = Math.ceil(GAME.legsPerSet / 2);
+      const wonSet = isLeft
+        ? GAME.score.playerLegs >= legsToWin
+        : GAME.score.oppLegs   >= legsToWin;
+      if (wonSet) {
+        if (isLeft) GAME.score.playerSets++; else GAME.score.oppSets++;
+        GAME.score.playerLegs = 0; GAME.score.oppLegs = 0;
+        const setsToWin = Math.ceil(GAME.sets / 2);
+        const wonGame = isLeft
+          ? GAME.score.playerSets >= setsToWin
+          : GAME.score.oppSets   >= setsToWin;
+        if (wonGame) { showGameOver(winner); return; }
+      }
+    } else {
+      if (isLeft) GAME.score.playerLegs++; else GAME.score.oppLegs++;
+      const legsToWin = Math.ceil(GAME.legs / 2);
+      const wonGame = isLeft
+        ? GAME.score.playerLegs >= legsToWin
+        : GAME.score.oppLegs   >= legsToWin;
+      if (wonGame) { showGameOver(winner); return; }
+    }
+
+    updateMidCol();
+    // loser of leg starts next leg (standard darts)
+    resetLeg(winner === "left" ? "right" : "left");
+  }
+
+  function showGameOver(winner) {
+    updateMidCol();
+    const label = winner === "left" ? "Left player" : "Right player";
     const overlay = document.createElement("div");
     overlay.className = "win-overlay";
     overlay.innerHTML = `
       <div class="win-card">
-        <h2>🎯 Checkout!</h2>
-        <p>You finished 501 in ${STATE.visits.length} visit${STATE.visits.length !== 1 ? "s" : ""}.</p>
-        <button id="winClose">Play again</button>
+        <h2>🎯 ${label} wins!</h2>
+        <button id="winClose">New Game</button>
       </div>`;
     document.body.appendChild(overlay);
     overlay.querySelector("#winClose").addEventListener("click", () => {
-      STATE.remaining = START;
-      STATE.visits = [];
-      STATE.editIndex = null;
-      STATE.lastScore = null;
-      STATE.undoStack = [];
-      STATE.redoStack = [];
       overlay.remove();
-      updateHistory();
-      render();
+      showNewGameDialog();
     });
   }
 
@@ -896,7 +978,7 @@
 
   function updateMidCol() {
     const totalSets = GAME.mode === "sets" ? GAME.sets : 1;
-    const totalLegs = GAME.legs;
+    const totalLegs = GAME.mode === "sets" ? GAME.legsPerSet : GAME.legs;
     const currentSet = Math.min(GAME.score.playerSets + GAME.score.oppSets + 1, totalSets);
     const currentLeg = Math.min(GAME.score.playerLegs + GAME.score.oppLegs + 1, totalLegs);
     document.getElementById("setTitle").textContent        = `${currentSet} of ${totalSets} sets`;
@@ -991,15 +1073,12 @@
       overlay.querySelector("#ngStart").addEventListener("click", () => {
         overlay.remove();
         GAME.score = { playerSets: 0, oppSets: 0, playerLegs: 0, oppLegs: 0 };
-        STATE.remaining = START;
-        STATE.visits = [];
-        STATE.editIndex = null;
-        STATE.lastScore = null;
-        STATE.undoStack = [];
-        STATE.redoStack = [];
-        updateMidCol();
-        updateHistory();
-        render();
+        STATE.remaining = START; STATE.visits = []; STATE.editIndex = null; STATE.lastScore = null;
+        STATE.right.remaining = START; STATE.right.visits = []; STATE.right.editIndex = null; STATE.right.lastScore = null;
+        STATE.undoStack = []; STATE.redoStack = [];
+        STATE.currentPlayer = GAME.startingPlayer;
+        STATE.legStarter    = GAME.startingPlayer;
+        updateMidCol(); updateHistory(); render();
       });
     }
 
