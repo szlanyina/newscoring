@@ -387,6 +387,23 @@
 
   // How far out (normalized to the number ring = 1.0) the finger must be to
   // count as "selecting a segment". Below this = inner/dead zone = no value.
+  // ---- checkout validity tables ----
+  const DOUBLES   = new Set([2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,50]);
+  const ONE_DART  = new Set([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,
+                             21,22,24,25,26,27,28,30,32,33,34,36,38,39,40,42,45,48,50,51,54,57,60]);
+  const TWO_DART  = new Set();
+  for (let x = 2; x <= 110; x++) {
+    for (const d of DOUBLES) { if (x === d || ONE_DART.has(x - d)) { TWO_DART.add(x); break; } }
+  }
+  const BAD_3DART = new Set([159,162,163,165,166,168,169]);
+  function validCheckoutDarts(score) {
+    const v = [];
+    if (DOUBLES.has(score)) v.push(1);
+    if (TWO_DART.has(score)) v.push(2);
+    if (score >= 2 && score <= 170 && !BAD_3DART.has(score)) v.push(3);
+    return v;
+  }
+
   const SELECT_THRESHOLD = 0.80;
   const GRAB_SLOP = 1.35;   // bubble tap forgiveness multiplier
 
@@ -724,18 +741,16 @@
 
   let settleTimer = null;             // pending "snap bubble home" timeout
 
-  function showDartCountPopup(player, callback) {
+  function showDartCountPopup(player, checkoutScore, callback) {
     const c = player === "left" ? "var(--pink)" : "#2980b9";
+    const valid = validCheckoutDarts(checkoutScore);
+    const btns = valid.map(n => `<button class="dc-btn" data-n="${n}">${n}</button>`).join("");
     const overlay = document.createElement("div");
     overlay.className = "dc-overlay";
     overlay.innerHTML = `
       <div class="dc-card" style="border-color:${c}">
         <h2>Darts used for checkout?</h2>
-        <div class="dc-btns">
-          <button class="dc-btn" data-n="1">1</button>
-          <button class="dc-btn" data-n="2">2</button>
-          <button class="dc-btn" data-n="3">3</button>
-        </div>
+        <div class="dc-btns">${btns}</div>
       </div>`;
     document.body.appendChild(overlay);
     overlay.querySelectorAll(".dc-btn").forEach(btn => {
@@ -815,11 +830,17 @@
       // When player picks dart count, clear bubble and start next leg.
       STATE.settleScore = recordedScore;
       render();
-      showDartCountPopup(checkoutPl, () => {
+      if (GAME.recordCheckoutDarts) {
+        showDartCountPopup(checkoutPl, recordedScore, () => {
+          STATE.dragPos = null;
+          STATE.settleScore = null;
+          handleLegWin(checkoutPl);
+        });
+      } else {
         STATE.dragPos = null;
         STATE.settleScore = null;
         handleLegWin(checkoutPl);
-      });
+      }
     } else if (committed != null) {
       STATE.settleScore = recordedScore;
       settleTimer = setTimeout(() => {
@@ -1055,6 +1076,7 @@
 
   // ---- new game config (persists across dialogs) ----
   const GAME = { mode: "legs", sets: 1, legs: 3, legsPerSet: 3, startingPlayer: "left",
+                 recordCheckoutDarts: true,
                  score: { playerSets: 0, oppSets: 0, playerLegs: 0, oppLegs: 0 } };
 
   function updateMidCol() {
@@ -1120,6 +1142,13 @@
               <button id="startRight" ${GAME.startingPlayer==="right"?"class='active'":""}>Right</button>
             </div>
           </div>
+          <div class="ng-section">
+            <div class="ng-label">Record Checkout Darts</div>
+            <div class="ng-toggle">
+              <button id="rcdYes" ${GAME.recordCheckoutDarts?"class='active'":""}>Yes</button>
+              <button id="rcdNo"  ${!GAME.recordCheckoutDarts?"class='active'":""}>No</button>
+            </div>
+          </div>
           <button class="ng-start" id="ngStart">Start Game</button>
         </div>`;
     }
@@ -1150,6 +1179,14 @@
       }
       overlay.querySelector("#startLeft").addEventListener("click",  () => setStarter("left"));
       overlay.querySelector("#startRight").addEventListener("click", () => setStarter("right"));
+
+      function setRcd(v) {
+        GAME.recordCheckoutDarts = v;
+        overlay.querySelector("#rcdYes").className = v  ? "active" : "";
+        overlay.querySelector("#rcdNo").className  = !v ? "active" : "";
+      }
+      overlay.querySelector("#rcdYes").addEventListener("click", () => setRcd(true));
+      overlay.querySelector("#rcdNo").addEventListener("click",  () => setRcd(false));
 
       overlay.querySelector("#ngStart").addEventListener("click", () => {
         overlay.remove();
