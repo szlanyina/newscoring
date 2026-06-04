@@ -595,7 +595,7 @@
       const isSel = STATE.dragging && STATE.previewIdx === i && segVals[i] != null;
       svg.appendChild(el("path", {
         d,
-        fill: isSel ? "var(--green-bub)" : (upperSet.has(i) ? "#444444" : "#333333"),
+        fill: isSel ? (STATE.currentPlayer === "right" ? "#1a5f8a" : "var(--green-bub)") : (upperSet.has(i) ? "#444444" : "#333333"),
         "fill-opacity": isSel ? 1 : 0.7,   // 30% transparent (selected stays solid)
         stroke: "#000", "stroke-width": 3, "stroke-linejoin": "round"
       }));
