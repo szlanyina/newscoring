@@ -8,7 +8,13 @@
   <meta name="color-scheme" content="dark" />
   <meta name="theme-color" content="#000000" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="X01 Scorer" />
+  <!-- PWA: install fullscreen in dark from "Add to Home Screen" -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <title>X01 Radial Scorer — Prototype</title>
   <style>
     :root {
@@ -532,7 +538,7 @@
         d,
         fill: isSel ? "var(--green-bub)" : (upperSet.has(i) ? "#6e6e6e" : "#444444"),
         "fill-opacity": isSel ? 1 : 0.7,   // 30% transparent (selected stays solid)
-        stroke: "#fff", "stroke-width": 3, "stroke-linejoin": "round"
+        stroke: "#000", "stroke-width": 3, "stroke-linejoin": "round"
       }));
     }
 
