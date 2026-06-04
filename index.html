@@ -695,7 +695,8 @@
     if (!STATE.dragging) return;
     const segVals = buildSegmentValues(rangeValues(STATE.activeRange), RANGES[STATE.activeRange]);
     let committed = (STATE.previewIdx != null) ? segVals[STATE.previewIdx] : null;
-    let recordedScore = committed;   // the throw value (shown on the bubble during linger)
+    let recordedScore = committed;
+    let pendingSwitch = false;   // defer player switch until bubble snaps home
 
     if (committed != null) {
       const pl = STATE.currentPlayer;
@@ -739,7 +740,7 @@
         if (P.remaining === 0) {
           handleLegWin(pl);
         } else if (!isEdit) {
-          STATE.currentPlayer = pl === "left" ? "right" : "left";
+          pendingSwitch = true;   // switch colour only when bubble returns home
         }
       }
     }
@@ -748,14 +749,15 @@
     STATE.previewIdx = null;
     try { svg.releasePointerCapture(e.pointerId); } catch {}
 
-    // Dropped on a scoring cell → bubble rests there 700ms showing the recorded
-    // throw, then snaps home. Non-scoring area → snap home immediately.
     if (committed != null) {
       STATE.settleScore = recordedScore;
       settleTimer = setTimeout(() => {
         settleTimer = null;
         STATE.dragPos = null;
         STATE.settleScore = null;
+        if (pendingSwitch) {
+          STATE.currentPlayer = STATE.currentPlayer === "left" ? "right" : "left";
+        }
         render();
       }, 700);
     } else {
