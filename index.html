@@ -748,13 +748,13 @@
 
       if (committed != null) {
         STATE.redoStack = [];
-        updateHistory();
         if (P.remaining === 0) {
           handleLegWin(pl);
         } else if (!isEdit) {
           pendingSwitch = true;
-          STATE.settling = true;   // lock the dial until bubble returns home
+          STATE.settling = true;   // set before updateHistory() so hist-col skips latest
         }
+        updateHistory();
       }
     }
 
