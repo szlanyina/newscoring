@@ -67,7 +67,7 @@
     .hist-box {
       position: relative; border: 2px solid var(--c); border-radius: 7px;
       min-width: 52px; height: 28px; display: flex; align-items: center; justify-content: center;
-      font-size: 16px; font-weight: 700; color: #d8d8d8; background: #444444;
+      font-size: 16px; font-weight: 700; color: #fff; background: #303030;
     }
     .hist-box.empty { border-color: #ccc; background: none; }
     /* player empty contours = light magenta (lighter than the player score colour) */
@@ -89,15 +89,15 @@
     .main-col { display: flex; flex-direction: column; gap: 3px; width: 71px; margin-top: 20px; }
     .big-rem {
       border: 2px solid var(--c); border-radius: 9px; padding: 8px 6px;
-      width: 71px; box-sizing: border-box; background: #444444;
+      width: 71px; box-sizing: border-box; background: #303030;
       display: flex; align-items: center; justify-content: center;
-      font-size: 29px; font-weight: 800; color: #d8d8d8; text-align: center; line-height: 1.1;
+      font-size: 29px; font-weight: 800; color: #fff; text-align: center; line-height: 1.1;
     }
     .actual-box {
       position: relative; border: 2px solid var(--c); border-radius: 9px; padding: 3px 6px;
-      width: 71px; min-height: 35px; box-sizing: border-box; background: #444444;
+      width: 71px; min-height: 35px; box-sizing: border-box; background: #303030;
       display: flex; align-items: center; justify-content: center;
-      color: #d8d8d8; text-align: center; line-height: 1;
+      color: #fff; text-align: center; line-height: 1;
     }
     .actual-box .val { font-size: 21px; font-weight: 600; }
 
@@ -505,11 +505,11 @@
     if (labelOverride == null && (STATE.dragging || STATE.settleScore != null)) return;
     const t = el("text", { x: p.x, y: p.y, class: "bubble-text" });
     // Decade label with the trailing 0 replaced by * (10 → "1*", 180 → "18*", 0 → "*")
-    const decade = (n) => String(n).slice(0, -1) + "*";
+    const decade = (n) => String(n).slice(0, -1) + "_";
     if (labelOverride != null) {
       t.appendChild(el("tspan", { x: p.x, dy: "0.05em" }, String(labelOverride)));
     } else if (RANGES[i] === "0-9") {
-      t.appendChild(el("tspan", { x: p.x, dy: "0.05em" }, decade(0)));
+      t.appendChild(el("tspan", { x: p.x, dy: "0.55em" }, "_"));
     } else {
       const lo = Number(RANGES[i].split("-")[0]);
       t.appendChild(el("tspan", { x: p.x, dy: "-0.45em" }, decade(lo)));
