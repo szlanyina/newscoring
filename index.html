@@ -649,7 +649,6 @@
     // 6) actual-throw boxes — visible only during drag preview or the 700ms settle.
     //    After the bubble returns home the box is empty; the score appears in hist-col.
     let leftTxt = "", rightTxt = "";
-    let leftDarts = "", rightDarts = "";
 
     if (STATE.dragging && STATE.previewIdx != null) {
       const v = segVals[STATE.previewIdx];
@@ -663,17 +662,14 @@
       const P = STATE.currentPlayer === "left" ? STATE : STATE.right;
       const lastV = P.visits[P.visits.length - 1];
       const t = (lastV && lastV.bust) ? "✗" : String(STATE.settleScore);
-      const dartCount = String(P.visits.length * 3);
-      if (STATE.currentPlayer === "left") { leftTxt = t; leftDarts = dartCount; }
-      else                                { rightTxt = t; rightDarts = dartCount; }
+      if (STATE.currentPlayer === "left") leftTxt = t;
+      else rightTxt = t;
     }
 
     scoreEl.textContent = leftTxt;
     oppScoreEl.textContent = rightTxt;
-    actualDartsEl.textContent = leftDarts;
-    actualDartsEl.style.display = leftDarts ? "" : "none";
-    oppActualDartsEl.textContent = rightDarts;
-    oppActualDartsEl.style.display = rightDarts ? "" : "none";
+    actualDartsEl.style.display = "none";
+    oppActualDartsEl.style.display = "none";
 
     // active-turn outline on the current player's remaining score box
     playerRemainingEl.classList.toggle("on-turn", STATE.currentPlayer === "left");
@@ -825,9 +821,11 @@
     actualDartsEl.textContent = ""; actualDartsEl.style.display = "none";
     delete actualBoxEl.dataset.vi;
     actualBoxEl.classList.remove("selected");
-    // hist-col shows ALL visits (newest at top)
+    // hist-col: skip the latest visit while settling (it's in the actual-box);
+    // include it once the bubble returns home (settling = false).
+    const leftStart = (STATE.settling && STATE.currentPlayer === "left") ? n - 2 : n - 1;
     const leftSlots = [];
-    for (let k = n - 1; k >= 0; k--) {
+    for (let k = leftStart; k >= 0; k--) {
       const v = STATE.visits[k];
       const sel = STATE.editIndex === k ? " selected" : "";
       leftSlots.push(`<div class="hist-box${sel}" data-vi="${k}">${v.bust ? "✗" : v.score}<span class="darts">${(k + 1) * 3}</span></div>`);
@@ -841,8 +839,9 @@
     oppActualDartsEl.textContent = ""; oppActualDartsEl.style.display = "none";
     delete oppActualBoxEl.dataset.vi;
     oppActualBoxEl.classList.remove("selected");
+    const rightStart = (STATE.settling && STATE.currentPlayer === "right") ? m - 2 : m - 1;
     const rightSlots = [];
-    for (let k = m - 1; k >= 0; k--) {
+    for (let k = rightStart; k >= 0; k--) {
       const v = STATE.right.visits[k];
       const sel = STATE.right.editIndex === k ? " selected" : "";
       rightSlots.push(`<div class="hist-box${sel}" data-vi="${k}" data-side="right">${v.bust ? "✗" : v.score}<span class="darts">${(k + 1) * 3}</span></div>`);
