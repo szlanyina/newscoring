@@ -772,6 +772,7 @@
           STATE.currentPlayer = STATE.currentPlayer === "left" ? "right" : "left";
         }
         STATE.settling = false;
+        updateHistory();   // move score from actual-box into hist-col
         render();
       }, 700);
     } else {
