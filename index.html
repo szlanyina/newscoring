@@ -229,7 +229,7 @@
       flex: 1; padding: 9px 6px; background: none; border: none; color: #aaa;
       font-size: 14px; font-weight: 700; cursor: pointer;
     }
-    .ng-toggle button.active { background: var(--pink); color: #fff; }
+    .ng-toggle button.active { background: #606060; color: #fff; }
     .ng-stepper { display: flex; align-items: center; gap: 10px; }
     .ng-stepper button {
       width: 34px; height: 34px; border-radius: 9px; border: none;
@@ -239,7 +239,7 @@
     .ng-stepper span { flex: 1; text-align: center; font-size: 17px; font-weight: 700; }
     .ng-start {
       width: 100%; padding: 13px; margin-top: 10px; border: none; border-radius: 13px;
-      background: var(--pink); color: #fff; font-size: 16px; font-weight: 800; cursor: pointer;
+      background: #606060; color: #fff; font-size: 16px; font-weight: 800; cursor: pointer;
     }
 
     /* ---------- checkout dart-count popup ---------- */
@@ -1231,11 +1231,16 @@
 
       function setStarter(s) {
         GAME.startingPlayer = s;
-        overlay.querySelector("#startLeft").className  = s === "left"  ? "active" : "";
-        overlay.querySelector("#startRight").className = s === "right" ? "active" : "";
+        const lBtn = overlay.querySelector("#startLeft");
+        const rBtn = overlay.querySelector("#startRight");
+        lBtn.className = s === "left"  ? "active" : "";
+        rBtn.className = s === "right" ? "active" : "";
+        lBtn.style.background = s === "left"  ? "var(--pink)" : "";
+        rBtn.style.background = s === "right" ? "#2980b9"     : "";
       }
       overlay.querySelector("#startLeft").addEventListener("click",  () => setStarter("left"));
       overlay.querySelector("#startRight").addEventListener("click", () => setStarter("right"));
+      setStarter(GAME.startingPlayer);  // apply colours on open
 
       function setRcd(v) {
         GAME.recordCheckoutDarts = v;
